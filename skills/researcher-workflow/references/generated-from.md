@@ -1,17 +1,20 @@
 # 生成来源
 
-- **工具：** 工作流架构工具
-- **模式：** `active`
-- **日期：** 2026-05-31
-- **原型：** 自定义 - 支持递归深入的非交互式研究综合
-- **收敛评分：** 1.0
+本技能由 researcher 角色的工作流需求整理而成，方法论来自仓库共享技能池中的其他技能：
 
-## 说明
+- `research-methodology` 技能及其参考资料（来源评估、结构化分析技术、综合模式、技术验证）
+- `artifact-pyramids` 技能（渐进披露的三层产物结构与 `SOURCES` 导航）
+- `orchestration-methodology` 技能（编排者如何分配研究简报、如何接收研究结论）
 
-此技能包面向 `~/.hermes/profiles/researcher/` 下的 researcher 专家子 Agent 角色配置。它假设该角色配置已经具备：
+## 工具依赖
 
-- 自定义 `SOUL.md`（编写于 2026-05-31）
-- `research-methodology` 技能及其参考资料
-- 用于 Web 研究的 `groktocrawl` 技能
+本技能**不依赖任何外部私有工具**：默认使用 Hermes 原生研究工具（`web_search`、`web_extract`、browser）。
+`groktocrawl` 是可选的增强路径，仅在 `command -v groktocrawl` 确认可用且任务需要其独有能力时启用。
+完整选择表见 `references/tool-governance.md`。
 
-此技能包补充方法论技能未涵盖的工作流阶段结构和渐进披露产物格式。
+## 结构说明
+
+Hermes 只索引名为 `SKILL.md` 的文件，且 `skill_view` 不支持 `父/子` 形式的技能名。
+因此五个阶段以 `references/<phase>.md` 交付，通过
+`skill_view('researcher-workflow', file_path='references/<phase>.md')` 加载，
+而不是作为独立「子技能」按名字加载。

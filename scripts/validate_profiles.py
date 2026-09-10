@@ -107,10 +107,21 @@ def link_target(path: Path, root: Path, git_symlinks: set[str]) -> str | None:
     return None
 
 
+# Runtime state Hermes writes inside <profile>/skills/ (e.g. `hermes skills list`
+# creates `.hub/`). These are gitignored and must never be treated as skill wiring.
+RUNTIME_SKILL_DIRS = frozenset({".hub", ".org", "__pycache__", ".cache", ".tmp"})
+
+
 def profile_skill_entries(skill_dir: Path, root: Path, git_symlinks: set[str]) -> list[Path]:
-    """Find profile skill links, including links nested under a real category directory."""
+    """Find profile skill links, including links nested under a real category directory.
+
+    Hidden/runtime directories are skipped: they hold Hermes state, not skill links,
+    and are excluded by .gitignore anyway.
+    """
     entries: list[Path] = []
-    for entry in skill_dir.iterdir():
+    for entry in sorted(skill_dir.iterdir()):
+        if entry.name in RUNTIME_SKILL_DIRS or (entry.name.startswith(".") and not entry.is_symlink()):
+            continue
         if link_target(entry, root, git_symlinks) is not None:
             entries.append(entry)
         elif entry.is_dir():
@@ -250,6 +261,17 @@ def main() -> int:
         skill_dir = profile_dir / "skills"
         if not skill_dir.exists():
             continue
+        # Invariant: a profile never ships skill content, only relative symlinks into
+        # the shared pool. Real directories/files here mean something (bundled-skill
+        # seeding, or a hand-copied skill) leaked runtime state into the repository.
+        for entry in sorted(skill_dir.iterdir()):
+            if entry.is_symlink() or entry.name in RUNTIME_SKILL_DIRS:
+                continue
+            errors.append(
+                f"{entry.relative_to(root)}: unexpected real path inside profile skills/ "
+                "(profiles must reference the shared pool via relative symlinks only — "
+                "run `hermes -p <profile> skills opt-out` to stop bundled-skill seeding)"
+            )
         for link in profile_skill_entries(skill_dir, root, git_symlinks):
             target = link_target(link, root, git_symlinks)
             if target is None:

@@ -1,23 +1,34 @@
 # 后端工程师角色 - Agent 指南
 
-## 触发模式
+> **本角色的运行协议以 `SOUL.md` 为权威来源。**
+> Hermes 把 `$HERMES_HOME/SOUL.md` 作为身份文档注入每个会话；而本目录的 `AGENTS.md` 只有在工作目录恰好是该角色目录时才会被加载。
+> 因此触发模式、加载顺序、职责边界与交接契约**统一放在 `SOUL.md`**，本文件不再重复，以免两份协议漂移。
 
-| 用户请求 | 含义 |
+## 角色定位
+
+实现 API 端点、服务逻辑、数据库访问、集成代码与服务级可观测性。
+
+## 上下游接口
+
+| 输入来自 | 输出去向 |
 |---|---|
-| “为 X 设计 API” | API 设计：资源建模 → 端点结构 → 请求/响应格式 → 错误处理 → 分页 |
-| “实现这个端点” | 完整实现：校验 → 服务逻辑 → 数据访问 → 响应格式化 → 测试 |
-| “为 X 编写服务层” | 服务架构：业务规则 → 工作流编排 → 状态管理 → 错误处理 |
-| “对接这个外部 API” | 集成：客户端设计 → 重试/退避 → 错误映射 → 可观测性 → 测试 |
-| “编写数据库访问代码” | 数据访问：查询设计 → 分页 → 事务边界 → N+1 优化 |
-| “为这个服务设计错误处理” | 错误策略：分类 → 结构化响应 → 日志 → 可观测性关联 |
+| `technical-architect` 的契约与边界 | 实现工作区（worktree）+ commit SHA + 测试证据 → `qa-engineer` → `reviewer` |
+| `qa-engineer` 的验证策略 | — |
 
-## 加载顺序
+## 协议与元数据位置
 
-```python
-skill_view('artifact-pyramids')       # 1. 输出格式
-skill_view('backend-engineering')     # 2. 方法论
+| 内容 | 位置 |
+|---|---|
+| 第一原则、职责边界、触发模式、加载顺序 | `profiles/backend-engineer/SOUL.md` |
+| 输出与交接契约 | `profiles/backend-engineer/SOUL.md` →「输出契约」 |
+| 模型、工具集 | `profiles/backend-engineer/config.yaml` |
+| 技能依赖声明 | `profiles/backend-engineer/profile.yaml` |
+| 技能方法论 | 仓库根 `skills/`（本目录 `skills/` 是相对符号链接） |
+
+## 仓库层面
+
+本目录是 [hermes-profiles](https://github.com/lovelybowen/hermes-profiles) 中的一个角色配置。贡献要求见根目录 `CONTRIBUTING.md`；提交前运行：
+
+```bash
+python3 scripts/validate_profiles.py
 ```
-
-## 输出契约
-
-采用产物金字塔。响应内容为 `00-index.md` 的绝对路径。

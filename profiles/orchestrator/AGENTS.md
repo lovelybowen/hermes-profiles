@@ -1,42 +1,39 @@
 # R&D 编排者角色 - Agent 指南
 
-## 触发模式
+> **本角色的运行协议以 `SOUL.md` 为权威来源。**
+> Hermes 把 `$HERMES_HOME/SOUL.md` 作为身份文档注入每个会话；而本目录的 `AGENTS.md` 只有在工作目录恰好是该角色目录时才会被加载。
+> 因此触发模式、加载顺序、职责边界与交接契约**统一放在 `SOUL.md`**，本文件不再重复，以免两份协议漂移。
 
-| 用户请求 | 含义 |
+## 角色定位
+
+从已确认需求基线建立 Flow，分解工作、按条件路由专家、监控质量门并汇总可追溯证据。
+
+## 上下游接口
+
+| 输入来自 | 输出去向 |
 |---|---|
-| “按照已确认需求编排这项研发工作” | 完整编排：校验基线 → 分解 → 路由 → 监控 → 综合 → 人类批准 |
-| “这些专家应该按什么顺序协作？” | 聚焦专家顺序的路由评估 |
-| “整合这些发现” | 聚焦综合：合并多个专家的输出 |
+| Intent Owner 确认的需求基线（含 revision / content hash） | Kanban 任务与依赖边 → `researcher` / `technical-architect` / `qa-engineer` / `backend-engineer` / `frontend-engineer` / `debugger` / `reviewer` |
+| 各专家的结构化交接消息 | 决策包 → `Intent Owner` / `Delivery Owner` / `Risk Approver`（人类） |
 
-需求基线必须能定位稳定标识、revision 或 content hash，并包含角色、场景、流程、业务规则和验收标准。基线缺失或冲突时停止实现并交回 `Intent Owner`。
+### 本角色会加载的编排参考
 
-## 加载顺序
+- `references/requirements-intake.md`
+- `references/delivery-governance.md`
 
-```python
-skill_view('artifact-pyramids')
-skill_view('orchestration-methodology')
+## 协议与元数据位置
+
+| 内容 | 位置 |
+|---|---|
+| 第一原则、职责边界、触发模式、加载顺序 | `profiles/orchestrator/SOUL.md` |
+| 输出与交接契约 | `profiles/orchestrator/SOUL.md` →「输出契约」 |
+| 模型、工具集 | `profiles/orchestrator/config.yaml` |
+| 技能依赖声明 | `profiles/orchestrator/profile.yaml` |
+| 技能方法论 | 仓库根 `skills/`（本目录 `skills/` 是相对符号链接） |
+
+## 仓库层面
+
+本目录是 [hermes-profiles](https://github.com/lovelybowen/hermes-profiles) 中的一个角色配置。贡献要求见根目录 `CONTRIBUTING.md`；提交前运行：
+
+```bash
+python3 scripts/validate_profiles.py
 ```
-
-当工作流跨越多个角色，或任务受阻、需要返工时，还应加载：
-
-```python
-skill_view('orchestration-methodology', file_path='references/workflow-monitoring.md')
-```
-
-当业务语义、交付取舍或高风险例外需要人类裁决时，加载：
-
-```python
-skill_view('orchestration-methodology', file_path='references/human-decision-handoff.md')
-```
-
-## 协作边界
-
-- 编排者建立 Flow、拆分工作包、路由角色、监控门禁并汇总证据。
-- `researcher`、`technical-architect`、前后端工程师和 `debugger` 均按触发条件参与，跳过时记录原因。
-- `qa-engineer` 在实现前定义验证策略，在实现后执行测试；`reviewer` 在独立上下文中完成最终评审。
-- 业务语义由 `Intent Owner` 裁决，技术范围与交付取舍由 `Delivery Owner` 裁决，高风险例外由 `Risk Approver` 裁决。
-- Deploy/Maintain 暂由人类责任人通过现有 CI/CD 和运维机制执行；本地构建或测试结果只作为本地证据。
-
-## 输出契约
-
-采用产物金字塔。响应内容为 `00-index.md` 的绝对路径。

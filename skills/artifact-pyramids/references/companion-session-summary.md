@@ -18,11 +18,11 @@
 
 ## 来源工具经验
 
-`groktocrawl agent` 命令无法从已知 URL 获取特定内容，返回“unable to find relevant pages”；对相同 URL 使用 `groktocrawl scrape` 则立即返回完整内容。**经验：**直接抓取已知 URL；仅在它自主发现来源的开放式探索中使用 agent。
+自动综合工具无法从已知 URL 获取特定内容，会返回“unable to find relevant pages”；对相同 URL 直接取证（`web_extract`，纯文本端点用 `curl`）则立即返回完整内容。**经验：**对已知 URL 直接取证；自动综合只用于自主发现来源的开放式探索。
 
 ## 产物金字塔输出
 
-完整金字塔位于 `/tmp/architect-documentation-research/`，入口为 `00-index.md`：
+完整金字塔位于 `<artifacts-root>/architect-documentation-research/`，入口为 `00-index.md`（`<artifacts-root>` 见 `methodology-to-pyramid-mapping.md`）：
 - L1：跨六种架构框架的发现摘要。
 - L2：三份分析文件（C4、4+1/ISO、arc42/ADR/VaB）。
 - L3：六份包含来源摘录和 URL 的档案。

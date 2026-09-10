@@ -28,3 +28,5 @@ metadata:
 | `references/workflow-monitoring.md` | 工作流跨越多个角色、质量门阻断，或工作需要重试和重新路由 |
 | `references/synthesis-patterns.md` | 需要把多个专家的输出组合成连贯整体 |
 | `references/human-decision-handoff.md` | 业务语义、交付取舍或高风险例外需要人类责任人裁决 |
+| `references/requirements-intake.md` | 收到自然语言需求、需要形成可确认的基线 revision，或收到未就绪基线时 |
+| `references/delivery-governance.md` | 分解实现类工作、分配工作区、设定质量门顺序或判定某个动作是否需要审批时 |

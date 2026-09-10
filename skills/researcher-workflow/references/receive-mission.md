@@ -1,14 +1,5 @@
----
-name: receive-mission
-description: >-
-  R&D 研究任务接收和范围转化。当 orchestrator 分配外部事实、技术选型或证据缺口简报时使用。
-  校验需求基线引用，并将简报重述为明确的研究问题、范围边界和深度目标。
-  这是 researcher-workflow 技能包的必经入口。
-compatibility: Hermes Agent
-metadata:
-  tags: [research, scope, mission, interpolation]
-  spec-version: "1.0"
----
+*本文件是 `researcher-workflow` 技能的参考文件，加载方式：*
+*`skill_view('researcher-workflow', file_path='references/receive-mission.md')`*
 
 # 接收任务
 
@@ -31,7 +22,7 @@ Orchestrator 会传递一份研究简报。研究问题可能层级过高，但�
 
 ### 2. 转化为研究范围
 
-将简报重述为结构化范围文档，写入 `/tmp/researcher-workflow/<mission-slug>/SCOPE.md`：
+将简报重述为结构化范围文档，写入 `<artifacts-root>/<mission-slug>/SCOPE.md`（`<artifacts-root>` 取 Kanban 任务工作区，或独立运行时的 `${RESEARCH_ARTIFACTS_DIR:-./research}`）：
 
 ```markdown
 # 研究范围：<标题>
@@ -73,8 +64,11 @@ Orchestrator 会传递一份研究简报。研究问题可能层级过高，但�
 ### 3. 建立产物目录
 
 ```bash
-mkdir -p /tmp/researcher-workflow/<mission-slug>/{layer-1-summary,layer-2-analysis,layer-3-detailed}
+# <artifacts-root> = Kanban 任务工作区，或独立运行时 ${RESEARCH_ARTIFACTS_DIR:-./research}
+mkdir -p "<artifacts-root>/<mission-slug>"/{layer-1-summary,layer-2-analysis,layer-3-detailed}
 ```
+
+不要把产物目录建在会被清理的临时目录中。
 
 ### 4. 加载研究方法论技能
 

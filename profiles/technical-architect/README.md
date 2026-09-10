@@ -27,6 +27,17 @@ ln -s ~/hermes-profiles/profiles/technical-architect ~/.hermes/profiles/
 hermes --profile technical-architect
 ```
 
+### 配置
+
+`config.yaml` 提供模型与工具集配置（`hermes-cli`）。API key 放在 `.env`，该文件已被 `.gitignore` 排除，不会进入版本库：
+
+```bash
+cp profiles/technical-architect/.env.example profiles/technical-architect/.env
+# 编辑该文件，填入 DEEPSEEK_API_KEY
+```
+
+运行协议（触发模式、加载顺序、职责边界、交接契约）见 `profiles/technical-architect/SOUL.md` —— 这是权威来源。
+
 ## 快速开始
 
 加载角色后，向它提出架构任务：
@@ -38,7 +49,7 @@ hermes --profile technical-architect
 2. 生成 C4 结构视图（上下文 → 容器 → 组件）。
 3. 将关键决策及其备选方案记录为 ADR。
 4. 加入 arc42 上下文（质量属性、风险、部署）。
-5. 在 `/tmp/architect-workflow/<project>/00-index.md` 输出产物金字塔。
+5. 在任务工作区（Kanban `worktree:` / `dir:`、项目约定目录或 `${ARCHITECT_ARTIFACTS_DIR:-./architecture}`）下输出产物金字塔，并返回 `00-index.md` 的绝对路径。
 
 ## 技能依赖
 

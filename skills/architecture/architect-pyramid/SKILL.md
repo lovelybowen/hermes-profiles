@@ -39,7 +39,7 @@ description: "technical-architect 角色的输出编排器 - 将 C4 结构视图
 
 ## 相关方法：架构即代码（AaC）仓库约定
 
-产物金字塔适用于 **Agent 驱动的架构工作**：使用方是另一个 Agent，或金字塔作为 `/tmp/architect-workflow/` 下的一次性分析交付物。
+产物金字塔适用于 **Agent 驱动的架构工作**：使用方是另一个 Agent，或金字塔作为任务工作区下的分析交付物。产物根目录取 Kanban 任务工作区（`worktree:` / `dir:`）、项目约定目录（如 `docs/ai-rnd/<project>/`）或 `${ARCHITECT_ARTIFACTS_DIR:-./architecture}`，**不要**只写入会被清理的临时目录。
 
 对于需要在 Git 仓库中维护**长期存在、由工具渲染的架构文档**的团队，AaC 社区形成了一套基于 Structurizr 的约定，在单一仓库中组合 C4 + ADR + arc42，并通过 Docker 预览。
 
@@ -70,7 +70,7 @@ description: "technical-architect 角色的输出编排器 - 将 C4 结构视图
 对任何调用方的响应都是 `00-index.md` 的绝对路径，而不是摘要或自然语言交接，只是一个路径。
 
 ```
-metadata={"artifact": "/tmp/architect-workflow/<slug>/00-index.md"}
+metadata={"artifact": "<absolute-artifacts-root>/<slug>/00-index.md"}
 ```
 
 ## 内容

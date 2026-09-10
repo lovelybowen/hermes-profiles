@@ -1,13 +1,5 @@
----
-name: evaluate-gaps
-description: >-
-  缺口评估与递归决策。在收集阶段后加载。应用三问模型判断是继续深入递归，
-  还是进入金字塔组装，并引导研究员完成结构化缺口评估。
-compatibility: Hermes Agent
-metadata:
-  tags: [research, gaps, recursion, evaluation]
-  spec-version: "1.0"
----
+*本文件是 `researcher-workflow` 技能的参考文件，加载方式：*
+*`skill_view('researcher-workflow', file_path='references/evaluate-gaps.md')`*
 
 # 评估缺口
 
@@ -47,10 +39,12 @@ metadata:
 
 如果决定递归，选择合适的强度：
 
-- **轻量**（1 至 2 次快速搜索）：`groktocrawl search "<specific query>" --limit 3`
-- **定向**（需要一篇文章或一个来源）：`groktocrawl scrape <url>`
-- **完整调查**（需要探索大量新领域）：`groktocrawl agent "<focused research prompt>"`
-- **需要浏览器**（疑似由 JS 渲染内容）：groktocrawl 浏览器套件
+- **轻量**（1 至 2 次快速搜索）：`web_search "<specific query>"`
+- **定向**（需要一篇文章或一个来源）：`web_extract <url>`
+- **完整调查**（需要探索大量新领域）：多篇 `web_extract` + `synthesis-patterns.md` 综合方法（若环境可用，`groktocrawl agent` 可加速）
+- **需要浏览器**（疑似由 JS 渲染内容）：browser 工具套件
+
+工具选择与回退链见 `references/tool-governance.md`。
 
 ### 5. 执行或推进
 
@@ -69,7 +63,7 @@ metadata:
 <轻量/定向/完整调查/浏览器>
 ```
 
-将其保存为 `/tmp/researcher-workflow/<mission-slug>/layer-3-detailed/gap-brief-<N>.md`。
+将其保存为 `<artifacts-root>/<mission-slug>/layer-3-detailed/gap-brief-<N>.md`，并确保该文件在交付时被声明为产物（Kanban 任务走 `kanban_complete(artifacts=[...])`）。
 
 递归调查后再次评估缺口。允许进行第二轮递归；第三轮递归必须有充分理由，此时应考虑范围本身是否过于宽泛。
 

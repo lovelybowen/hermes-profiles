@@ -1,20 +1,11 @@
----
-name: build-pyramid
-description: >-
-  渐进披露产物金字塔的组装方法。在缺口评估确认研究达到饱和后加载。
-  读取 layer-3-detailed/ 中收集的材料，生成分层输出：摘要（第 1 层）、
-  分析集合（第 2 层）和详细档案（第 3 层）。每一层都附带说明并链接到下一层。
-compatibility: Hermes Agent
-metadata:
-  tags: [research, pyramid, artifacts, writing, synthesis]
-  spec-version: "1.0"
----
+*本文件是 `researcher-workflow` 技能的参考文件，加载方式：*
+*`skill_view('researcher-workflow', file_path='references/build-pyramid.md')`*
 
 # 构建金字塔
 
 ## 使用时机
 
-阶段 3（评估缺口）确认研究达到饱和后加载此技能。所有已收集材料都位于 `/tmp/researcher-workflow/<mission-slug>/layer-3-detailed/`。本阶段将这些材料转化为渐进披露金字塔。
+阶段 3（评估缺口）确认研究达到饱和后加载此技能。所有已收集材料都位于 `<artifacts-root>/<mission-slug>/layer-3-detailed/`。本阶段将这些材料转化为渐进披露金字塔。
 
 ## 金字塔结构
 
@@ -71,7 +62,7 @@ layer-3-detailed/
 链接格式（绝对路径加说明）：
 
 ```
-参见 [/tmp/researcher-workflow/<mission-slug>/layer-3-detailed/01-gather-pass-1.md]，
+参见 [<artifacts-root>/<mission-slug>/layer-3-detailed/01-gather-pass-1.md]，
 其中记录了形成此项发现的初步调查。
 ```
 

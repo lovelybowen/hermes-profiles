@@ -1,4 +1,69 @@
+# ---- OS / editor ----
 .DS_Store
-.hermes/
 *.pyc
 __pycache__/
+
+# ---- Secrets (NEVER commit) ----
+profiles/*/.env
+profiles/*/.env.*
+!profiles/*/.env.example
+profiles/*/auth.json
+profiles/*/auth.lock
+
+# ---- Runtime state created inside profile dirs ----
+profiles/*/state.db
+profiles/*/state.db-shm
+profiles/*/state.db-wal
+profiles/*/runtime/
+profiles/*/active_profile
+profiles/*/*.log
+profiles/*/hermes_state.db*
+profiles/*/response_store.db*
+profiles/*/gateway.pid
+profiles/*/gateway_state.json
+profiles/*/gateway.lock
+profiles/*/gateway.sock
+profiles/*/processes.json
+profiles/*/active_profile
+profiles/*/.update_check
+profiles/*/.install_id.lock
+profiles/*/.skills_prompt_snapshot.json
+profiles/*/models_dev_cache*
+profiles/*/*.lock
+
+# ---- User / runtime data ----
+profiles/*/memories/
+profiles/*/sessions/
+profiles/*/logs/
+profiles/*/plans/
+profiles/*/workspace/
+profiles/*/home/
+profiles/*/cron/
+profiles/*/hooks/
+profiles/*/skills/.hub/
+profiles/*/skills/.org/
+profiles/*/skills/.bundled_manifest
+profiles/*/skills/.usage.json
+profiles/*/skills/.usage.json.lock
+profiles/*/skills/__pycache__/
+profiles/*/skills/.cache/
+profiles/*/.tirith-install-failed
+
+# ---- Caches & generated artifacts ----
+profiles/*/cache/
+profiles/*/image_cache/
+profiles/*/audio_cache/
+profiles/*/document_cache/
+profiles/*/browser_screenshots/
+profiles/*/*_cache/
+
+# ---- Checkpoints / backups / infra ----
+profiles/*/checkpoints/
+profiles/*/backups/
+profiles/*/sandboxes/
+profiles/*/.worktrees/
+profiles/*/hermes-agent/
+profiles/*/bin/
+profiles/*/node_modules/
+profiles/*/errors.log
+profiles/*/.hermes_history

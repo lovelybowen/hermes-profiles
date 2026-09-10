@@ -1,29 +1,32 @@
 # researcher-workflow - Agent 加载指引
 
-## 技能
+## 阶段参考文件
 
-| 阶段 | 技能名称 | 文件 |
-|-------|-----------|------|
-| 1 | `researcher-workflow/receive-mission` | `skills/receive-mission.md` |
-| 2 | `researcher-workflow/research-gather` | `skills/research-gather.md` |
-| 3 | `researcher-workflow/evaluate-gaps` | `skills/evaluate-gaps.md` |
-| 4 | `researcher-workflow/build-pyramid` | `skills/build-pyramid.md` |
-| 5 | `researcher-workflow/deliver-findings` | `skills/deliver-findings.md` |
+| 阶段 | 参考文件 |
+|-------|-----------|
+| 1 | `references/receive-mission.md` |
+| 2 | `references/research-gather.md` |
+| 3 | `references/evaluate-gaps.md` |
+| 4 | `references/build-pyramid.md` |
+| 5 | `references/deliver-findings.md` |
 
 ## 加载方式
 
-先加载总技能以启用触发检测：
-```
-skill_view(name='researcher-workflow')
+先加载索引技能：
+```python
+skill_view('researcher-workflow')
 ```
 
-然后按需加载各阶段技能：
+然后按需加载各阶段参考文件：
+```python
+skill_view('researcher-workflow', file_path='references/<phase-file>.md')
 ```
-skill_view(name='researcher-workflow/<skill-name>')
-```
+
+> 注意：Hermes 只索引名为 `SKILL.md` 的文件，且 `skill_view` 不支持 `父/子` 路径。
+> 因此阶段文档必须放在 `references/` 并通过 `file_path` 加载，不能作为「子技能」按名字加载。
 
 ## 禁止事项
 
-- 不要使用 `web_search` 或 `web_extract` 工具，统一使用 groktocrawl。
+- 默认使用 Hermes 原生 `web_search` / `web_extract` / browser；`groktocrawl` 仅在 `command -v groktocrawl` 确认可用且必要时启用（见 `references/tool-governance.md`）。
 - 不要跳过阶段 1（`receive-mission`），需要先将 orchestrator 的简报转化为研究范围。
-- 不要清理 `/tmp/` 中的产物，它们会自然过期。
+- 不要把产物只留在会被清理的临时目录：Kanban 任务通过 `kanban_complete(artifacts=[...])` 显式声明，独立运行写入 `${RESEARCH_ARTIFACTS_DIR:-./research}/<mission-slug>/`。

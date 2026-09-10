@@ -1,23 +1,34 @@
 # QA 工程师角色 - Agent 指南
 
-## 触发模式
+> **本角色的运行协议以 `SOUL.md` 为权威来源。**
+> Hermes 把 `$HERMES_HOME/SOUL.md` 作为身份文档注入每个会话；而本目录的 `AGENTS.md` 只有在工作目录恰好是该角色目录时才会被加载。
+> 因此触发模式、加载顺序、职责边界与交接契约**统一放在 `SOUL.md`**，本文件不再重复，以免两份协议漂移。
 
-| 用户请求 | 含义 |
+## 角色定位
+
+设计测试策略、自动化与质量门，执行验证并产出可复现的测试证据。
+
+## 上下游接口
+
+| 输入来自 | 输出去向 |
 |---|---|
-| “设计测试策略” | 测试策略：风险评估 → 测试层级 → 自动化目标 → 质量门 |
-| “搭建测试自动化” | 框架选型、测试工具配置、CI 集成、首个测试套件 |
-| “构建回归测试套件” | 回归项选择标准、套件结构、CI 集成 |
-| “这个测试不稳定” | 不稳定测试调查：隔离、时序、状态管理 |
-| “设计质量门” | 门禁策略：通过/失败标准、阻断与建议、升级处理 |
-| “审计测试覆盖率” | 覆盖分析：已测内容、缺失内容、风险评估 |
+| 基线 + 已批准契约（实现前） | 测试证据 → `reviewer` |
+| 实现工作区与固定 commit SHA（实现后） | 已知实现缺陷 → 原实现者；未知根因或反复失败 → `debugger` |
 
-## 加载顺序
+## 协议与元数据位置
 
-```python
-skill_view('artifact-pyramids')  # 1. 输出格式
-skill_view('qa-methodology')     # 2. 方法论
+| 内容 | 位置 |
+|---|---|
+| 第一原则、职责边界、触发模式、加载顺序 | `profiles/qa-engineer/SOUL.md` |
+| 输出与交接契约 | `profiles/qa-engineer/SOUL.md` →「输出契约」 |
+| 模型、工具集 | `profiles/qa-engineer/config.yaml` |
+| 技能依赖声明 | `profiles/qa-engineer/profile.yaml` |
+| 技能方法论 | 仓库根 `skills/`（本目录 `skills/` 是相对符号链接） |
+
+## 仓库层面
+
+本目录是 [hermes-profiles](https://github.com/lovelybowen/hermes-profiles) 中的一个角色配置。贡献要求见根目录 `CONTRIBUTING.md`；提交前运行：
+
+```bash
+python3 scripts/validate_profiles.py
 ```
-
-## 输出契约
-
-采用产物金字塔。响应内容为 `00-index.md` 的绝对路径。

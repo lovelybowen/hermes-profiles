@@ -15,7 +15,7 @@ researcher、technical-architect、qa-engineer 和 reviewer 等专业角色各�
 | 研究问题 + 关键发现 | 任务推演 | L1 摘要 |
 | 按维度分析（市场、技术、竞争） | 系统化收集 + 缺口评估 | L2 分析集合 |
 | 来源摘录、访谈记录、原始数据 | 来源采集 | L3 档案 |
-| Path: `/tmp/researcher-workflow/<slug>/00-index.md` |
+| **交接入口** | 产物金字塔 | `<artifacts-root>/<slug>/00-index.md` |
 
 ### Technical-Architect 角色
 
@@ -24,7 +24,7 @@ researcher、technical-architect、qa-engineer 和 reviewer 等专业角色各�
 | C4 第 1 层（系统上下文）+ arc42 画布 + 决策仪表盘 | C4 模型、arc42 | L1 摘要 |
 | C4 第 2 层（容器）、C4 第 3 层（组件）、有效 ADR、arc42 第 1-4 节、质量属性、故障模式分析 | C4 + ADR + arc42 | L2 分析集合 |
 | C4 第 4 层（例外情况下）、已取代 ADR、Spike 结果、API 契约 | C4 + ADR | L3 档案 |
-| Path: `/tmp/architect-workflow/<slug>/00-index.md` |
+| **交接入口** | 产物金字塔 | `<artifacts-root>/<slug>/00-index.md` |
 
 ## 维度边界规则
 
@@ -43,8 +43,9 @@ researcher、technical-architect、qa-engineer 和 reviewer 等专业角色各�
 
 1. **识别角色的核心方法论。**该角色的人类从业者会生成什么？（例如，QA 工程师会生成测试策略、回归计划和质量门。）
 2. **将每项产物映射到金字塔层级。**摘要文档放入 L1；按维度分析放入 L2（每个维度一份文件）；支撑性参考资料放入 L3。
-3. **定义输出路径。**约定：`/tmp/<profile-role>-workflow/<slug>/00-index.md`
-4. **记录交接方式。**角色响应时仅提供 `00-index.md` 的路径，与其他所有专业角色使用相同约定。
+3. **定义输出路径。**约定：`<artifacts-root>/<slug>/00-index.md`，其中 `<artifacts-root>` 取 Kanban 任务工作区（`worktree:` / `dir:`）、项目约定目录，或独立运行时的 `${<ROLE>_ARTIFACTS_DIR:-./artifacts}`。
+   **不要**把产物只写入会被清理的临时目录：Kanban 的 `scratch` 工作区在任务完成时会被删除，必须通过 `kanban_complete(artifacts=[...])` 显式声明。
+4. **记录交接方式。**角色返回结构化交接消息（`status` / `summary` / `artifact` / `evidence` / `risks` / `decisions_required`），其中 `artifact` 为该金字塔 `00-index.md` 的绝对路径。所有专业角色使用同一约定。
 5. **定义维度边界。**如果两种方法论都会主张拥有同一事实，应记录该事实由哪一种方法论负责。
 
 ## 为什么这很重要

@@ -22,11 +22,21 @@ metadata:
 
 # 系统化调试
 
+> **溯源：** 本技能是 Hermes 自带技能 `software-development/systematic-debugging` 的本地化版本（同一方法论，中文表述，含量有限的适配），随仓库分发以固定版本。**上游更新不会自动回流**——升级 Hermes 后需人工比对并在此同步，以免与自带技能产生无法察觉的漂移。
+>
+> **适用范围：** 面向服务端 / Web / CLI 的软件缺陷。其中 macOS 桌面应用排障属上游携带的通用内容，仅在缺陷确实发生在 macOS 桌面应用时适用，见 `references/macos-desktop-troubleshooting.md`。
+
 ## 概述
 
 随意修复既浪费时间，又会制造新缺陷。快速补丁会掩盖底层问题。
 
 **核心原则：**尝试修复前始终先找到根因。只修复症状就是失败。
+
+## 与 `debugging-methodology` 的关系
+
+本技能是**根因协议的权威细则**（四阶段：根因调查 → 模式分析 → 假设与测试 → 实施），由 `debugger` 角色加载。
+
+`debugging-methodology` 提供工程过程索引（复现 → 隔离 → 根因 → 修复 → 验证）以及复现清单、隔离技巧、性能调试等参考资料。**进入根因阶段后以本技能为准**；需要复现或隔离的具体技巧时，加载 `debugging-methodology` 的对应参考文件。
 
 ## 铁律
 
@@ -189,76 +199,8 @@ pip show <package-name>
 
 ### 6b. macOS 应用故障排查 - 沙箱应用
 
-**调试 macOS 应用，尤其是“图书”“音乐”或 App Store 应用等沙箱应用时：**
-
-应用被限制在 `~/Library/Containers/<bundle-id>/` 下的沙箱容器中。
-
-#### 定位容器
-
-```bash
-ls ~/Library/Containers/<bundle-id>/
-# Data/Library/ - 偏好设置、缓存、数据库
-# Data/Documents/ - 用户可见内容、导入队列
-```
-
-#### 检查配套 XPC 服务
-
-许多 Apple 应用使用后台 XPC 服务执行文件操作：
-
-```bash
-# XPC 服务位于框架包或应用包中：
-/System/Library/PrivateFrameworks/<Framework>.framework/XPCServices/
-/System/Applications/<App>.app/Contents/XPCServices/
-ps aux | grep -i "<service-name>"
-```
-
-#### 直接读取数据库
-
-沙箱应用通常使用 SQLite/CoreData：
-
-```bash
-sqlite3 ~/Library/Containers/<bundle-id>/Data/Documents/<path>.sqlite ".tables"
-sqlite3 ~/Library/Containers/<bundle-id>/Data/Documents/<path>.sqlite "SELECT * FROM ZTABLE LIMIT 10;"
-```
-
-#### 检查系统日志
-
-```bash
-log show --predicate 'process == "AppName"' --last 10m --style compact
-log stream --predicate 'process == "AppName"' --style compact
-```
-
-#### 重置 TCC 权限
-
-如果应用无法访问沙箱之外的文件，例如导入静默失败：
-
-```bash
-tccutil reset All com.apple.bundle-id
-```
-
-#### 理解 I/O 边界
-
-- **安全作用域书签：**来自拖放或 `open` 命令的书签只能使用一次。如果导入失败，书签已被消耗，后续尝试会静默失败。
-- **NSOpenPanel：**“文件 > 导入”对话框会创建新书签，因此测试更可靠。
-- 如果 `open -b bundle-id file.ext` 对“下载”目录中的文件有效、对桌面文件无效，可能是 TCC 或分层访问问题，因为 macOS 为“下载”目录提供更宽松的访问权限。
-
-#### 区分本地损坏与云同步损坏
-
-重置容器可以修复本地状态，但不能修复 iCloud 同步损坏。云端问题的迹象包括：
-- 完全删除容器并重新安装后问题仍然存在。
-- 重启后导入仅成功一次，随后再次失效。
-- 多台设备都出现相同问题。
-
-**操作：**如果本地重置无法修复，iCloud 同步状态可能已经损坏。最后手段是“系统设置 → Apple ID → iCloud → 管理储存空间 → [应用] → 删除所有数据”。
-
-#### 恢复选项（按升级顺序）
-
-1. 终止并重启 XPC 服务（`kill -9 <PID>`），这只是临时措施，XPC 会重新启动。
-2. 重置应用容器（`rm -rf ~/Library/Containers/<bundle-id>/`）。
-3. 重置 TCC 权限（`tccutil reset All <bundle-id>`）。
-4. 重启 Mac。
-5. 删除应用的 iCloud 数据。
-6. 创建一个用于测试的 macOS 用户。如果应用在该用户下正常，问题位于当前用户资料库，而不是系统。
+**仅当缺陷发生在 macOS 桌面应用时适用**；服务端 / Web / CLI 缺陷跳过本步骤。
+完整流程见 `references/macos-desktop-troubleshooting.md`，示例见 `references/macos-sandbox-debug-example.md`。
 
 ### 6c. 跟踪数据流
 

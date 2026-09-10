@@ -10,6 +10,17 @@ ln -s ~/hermes-profiles/profiles/debugger ~/.hermes/profiles/
 hermes --profile debugger
 ```
 
+### 配置
+
+`config.yaml` 提供模型与工具集配置（`hermes-cli`）。API key 放在 `.env`，该文件已被 `.gitignore` 排除，不会进入版本库：
+
+```bash
+cp profiles/debugger/.env.example profiles/debugger/.env
+# 编辑该文件，填入 DEEPSEEK_API_KEY
+```
+
+运行协议（触发模式、加载顺序、职责边界、交接契约）见 `profiles/debugger/SOUL.md` —— 这是权威来源。
+
 ## 技能依赖
 
 | 技能 | 能力 |
