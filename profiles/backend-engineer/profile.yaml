@@ -1,0 +1,5 @@
+description: "后端工程师 - 实现 API 端点（REST/gRPC/GraphQL）、服务逻辑、数据库访问模式、集成代码和服务级可观测性，将架构设计转化为可运行的服务端系统。"
+skills:
+  required:
+    - artifact-pyramids
+    - backend-engineering

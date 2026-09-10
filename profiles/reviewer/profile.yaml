@@ -1,0 +1,5 @@
+description: "代码与架构评审员 - 评审 PR、执行质量门、审计回归风险并依据标准开展验证。"
+skills:
+  required:
+    - artifact-pyramids
+    - review-methodology

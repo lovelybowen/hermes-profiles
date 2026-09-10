@@ -1,0 +1,39 @@
+name: 角色配置检查
+on:
+  pull_request:
+    paths:
+      - 'profiles/**'
+      - 'skills/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装依赖
+        run: pip install pyyaml
+
+      - name: 验证角色元数据和技能连接
+        run: python3 scripts/validate_profiles.py
+
+      - name: 检查 README.md 是否反映当前角色和技能
+        run: |
+          errors=0
+          actual_profiles=$(ls profiles/ | wc -l | tr -d ' ')
+          readme_profiles=$(grep -cE "├── [a-z].*/.*←|└── [a-z].*/.*←" README.md)
+          if [ "$readme_profiles" -ne "$actual_profiles" ]; then
+            echo "README.md 列出了 $readme_profiles 个角色，但实际存在 $actual_profiles 个角色"
+            errors=$((errors + 1))
+          fi
+          actual_skills=$(ls skills/ | wc -l | tr -d ' ')
+          readme_skills=$(grep -cE "^│   [├└]── [a-z]" README.md)
+          if [ "$readme_skills" -ne "$actual_skills" ]; then
+            echo "README.md 的技能部分可能已过期（列出 $readme_skills 个，实际存在 $actual_skills 个）"
+            errors=$((errors + 1))
+          fi
+          if [ "$errors" -gt 0 ]; then
+            echo "请更新 README.md，使其反映当前角色和技能"
+            exit 1
+          fi
+          echo "README.md 与 $(ls profiles/ | wc -l | tr -d ' ') 个角色和 $(ls skills/ | wc -l | tr -d ' ') 个技能目录一致"
