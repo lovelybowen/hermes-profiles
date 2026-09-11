@@ -18,6 +18,10 @@
 - Kanban `scratch` 工作区在任务完成时被删除。产物必须先通过 `kanban_complete(artifacts=[...])` 声明，否则视为未交付。
 - `dir:<绝对路径>` 与 `worktree` 工作区在完成后保留。
 
+### 1.1 Linux Codex 执行
+
+工程 Profile 在 Kanban 提供的本地独立 worktree 中调用 Hermes 自带 `codex` 技能。工作区、Codex 当前目录、Git branch 和测试环境必须属于同一 Linux worktree；跨角色交接使用 task id、branch、commit SHA 和 repo-relative artifact。需要机器解析时可额外使用 Codex 的 `--json` 输出，但不依赖自定义 Runner。
+
 ## 2. 分支与提交约定
 
 ```

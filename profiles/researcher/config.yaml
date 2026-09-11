@@ -3,4 +3,8 @@ model:
   provider: deepseek
   base_url: https://api.deepseek.com/v1
 toolsets:
-  - hermes-cli
+  - file
+  - web
+  - browser
+  - skills
+  - session_search

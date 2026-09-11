@@ -23,7 +23,8 @@ hermes-profiles/
 │   ├── researcher-workflow/
 │   ├── review-methodology/
 │   ├── software-architecture-analysis/
-│   └── systematic-debugging/
+│   ├── systematic-debugging/
+│   └── codex-exec-runner/
 ├── profiles/                        ← Agent 角色配置（技能通过符号链接引用）
 │   ├── backend-engineer/
 │   ├── debugger/
@@ -65,9 +66,12 @@ Hermes 把 `$HERMES_HOME/SOUL.md` 作为身份文档注入每个会话。而 `AG
 
 `orchestrator` 是唯一入口。用户只与它对话；其余 7 个角色由它按条件通过 Kanban 任务拉入，不直接面向用户接单。
 
+在多触发源部署中，`default` 可作为 Feishu/Cron ingress。它不承担研发编排，而是创建 assignee 为 `orchestrator` 的 intake 任务；`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。
+
 ### 角色之间的协调方式
 
 - 编排是**集中式**的：`orchestrator` 分解工作、建立 Kanban 任务与依赖边、按条件路由专家、汇总证据。
+- 代码执行在 Linux 本地完成：工程类 Profile 使用 Hermes 自带 `codex` 技能，在 Kanban 独立 worktree 中调用 `codex exec`。
 - 交接是**结构化消息**（`status` / `summary` / `artifact` / `evidence` / `risks` / `decisions_required`），不是自然语言散文，也不是单纯一个路径。
 - 产物金字塔是**详细交付物**；状态、阻断、澄清和审批请求不生成金字塔。
 - 人类责任人不是可调度的 Profile。

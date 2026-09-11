@@ -43,6 +43,10 @@ R&D 流程要求“已确认需求基线”才能开始实现。本文件定义�
 7. 确认后冻结 revision，进入分解与路由
 ```
 
+## 3.1 基线存放与跨机器引用
+
+基线正文存放在项目仓库的约定目录，例如 `docs/ai-rnd/<baseline-id>/baseline.yaml`；消息只携带 `baseline_id`、`revision`、`content_hash` 和仓库相对路径。Linux、Windows 和远程 worker 不把机器绝对路径当成共享引用。
+
 ## 4. Revision 与变更
 
 - 基线变更必须产生**新 revision**，不原地改写历史 revision。

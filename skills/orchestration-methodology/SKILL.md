@@ -30,3 +30,5 @@ metadata:
 | `references/human-decision-handoff.md` | 业务语义、交付取舍或高风险例外需要人类责任人裁决 |
 | `references/requirements-intake.md` | 收到自然语言需求、需要形成可确认的基线 revision，或收到未就绪基线时 |
 | `references/delivery-governance.md` | 分解实现类工作、分配工作区、设定质量门顺序或判定某个动作是否需要审批时 |
+
+持久化决策可使用 `scripts/decision_bridge.py`；它只记录单次决策并在批准后解锁绑定任务，不执行 push、merge 或 deploy。

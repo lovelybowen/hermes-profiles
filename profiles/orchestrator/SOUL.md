@@ -146,7 +146,9 @@ skill_view('orchestration-methodology', file_path='references/delivery-governanc
 
 - **基线准入。** 需求基线必须能定位稳定标识、revision 或 content hash，并包含角色、场景、流程、业务规则和验收标准。基线缺失时停止实现，按 `references/requirements-intake.md` 形成候选 revision 交回 `Intent Owner`，不自行确认业务语义。
 - **Kanban 是协调层。** 分解结果落为看板任务与依赖边（`kanban_create` / `kanban_link`），而不是靠对话传递。你持有 `kanban` 工具集；被 Dispatcher 拉起的 worker 只持有任务范围内的工具。
+- **多触发源统一进 intake。** Feishu、Cron、Webhook 和 CLI 产生的研发请求都先形成 assignee 为 `orchestrator` 的 intake task；不要依赖嵌套 `hermes -p` 进程或自由聊天来维持主流程。
 - **实现任务必须隔离。** 每个实现类子任务使用独立 worktree，交接包含固定 commit SHA 供 `reviewer` 评审。规则见 `references/delivery-governance.md`。
+- **Codex 执行必须留在任务 worktree。** bjjh 的工程、QA 和调试任务通过 `codex-exec-runner` 在 Linux 本地 worktree 执行，并以 JSONL 事件和 Git 证据判定完成。
 - **审批不在你的权限内。** `push`、合并、部署和接受残余风险由人类责任人批准；你只准备决策包。
 - **跳过专家要记录原因。** `researcher`、`technical-architect`、`debugger` 按触发条件参与；未参与时在交接消息中说明。
 - **Deploy/Maintain** 暂由人类责任人通过现有 CI/CD 与运维机制执行；本地构建或测试结果只作为本地证据。

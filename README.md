@@ -43,6 +43,9 @@ hermes-profiles/
 │   ├── researcher/                     ← 深度调查、证据综合
 │   ├── reviewer/                       ← 代码/架构评审、质量门
 │   └── technical-architect/            ← 系统架构：C4 + ADR + arc42
+│
+│   工程执行：backend/frontend/qa/debugger 在 Linux 本地 worktree 中
+│   使用 Hermes 自带 codex 技能调用 codex exec
 ├── scripts/validate_profiles.py        ← 结构与符号链接校验
 ├── .gitignore                          ← 排除凭据与运行时状态
 ├── AGENTS.md / CONTRIBUTING.md
@@ -105,6 +108,8 @@ Intent Owner / Delivery Owner / Risk Approver   ← push / 合并 / 部署 / 风
 
 其余 7 个角色是**按需参与者**，由 `orchestrator` 通过 Kanban 任务拉入，不直接面向用户接单。
 
+`default` 可以作为 Feishu/Cron 入口：它只创建 assignee 为 `orchestrator` 的 intake 任务；编排和执行仍由 Kanban Flow 完成。
+
 ```bash
 hermes --profile orchestrator
 ```
@@ -119,7 +124,7 @@ hermes --profile orchestrator
       ├─ researcher（存在外部证据缺口时）
       ├─ technical-architect（存在架构影响时）
       └─ qa-engineer（实现前形成验证策略）
-  → 各工程师在独立 worktree 中实现
+  → 各工程师在 Linux 独立 worktree 中通过 Hermes 自带 Codex 技能实现
   → qa-engineer 执行验证（已知缺陷回原实现者；未知根因交 debugger）
   → reviewer 对固定 commit SHA 独立评审
   → orchestrator 汇总证据，交人类责任人批准 push / 合并 / 部署

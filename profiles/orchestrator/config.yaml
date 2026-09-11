@@ -3,5 +3,12 @@ model:
   provider: deepseek
   base_url: https://api.deepseek.com/v1
 toolsets:
-  - hermes-cli
+  - file
+  - terminal
+  - skills
+  - session_search
+  - clarify
   - kanban
+onboarding:
+  seen:
+    tool_progress_prompt: true

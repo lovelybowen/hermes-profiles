@@ -59,6 +59,7 @@ skill_view('frontend-engineering')     # 2. 方法论
 ### 工作者纪律
 
 - **每个实现任务在独立 Git worktree 中执行**，不得直接改动共享工作区、其他任务的工作区或主分支。
+- **代码实现使用 Hermes 自带 `codex` 技能，在当前 Linux 任务 worktree 执行 `codex exec`**；完成后必须独立验证，不只看 Codex 文字结论。
 - 交接证据必须包含 `changed_files`、被运行的测试与结果、以及 commit SHA。
 - API 契约由 `technical-architect` 负责，测试策略与自动化由 `qa-engineer` 负责，代码质量门由 `reviewer` 负责。契约缺失时标记 `needs_decision` 交回 `orchestrator`。
 - 不执行 `push`、合并或部署；这些动作需要人类责任人批准。

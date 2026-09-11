@@ -58,3 +58,23 @@ decision:
 ## 完成条件
 
 决策交接只有在状态、责任人、基线引用、选择结果、理由和受影响工件均已记录，并且所有受影响下游门禁已重新排队后才算完成。
+
+## Feishu / Kanban 实现约定
+
+飞书只是决策界面，不能以聊天文本代替持久化决定。决策卡必须绑定以下不可变字段：
+
+```yaml
+decision_id: <single-use id>
+task_id: <kanban task id>
+baseline_revision: <revision>
+commit_sha: <sha or null>
+requested_action: baseline_approve | push | merge | deploy | risk_accept
+allowed_approvers: [<user id>]
+expires_at: <timestamp>
+```
+
+卡片回调先验证操作者、过期时间、单次使用状态、任务状态、需求 revision 和 commit SHA；任何一项不匹配都拒绝并保持任务 `blocked`。批准结果写入决策记录后，才可解除对应的人工阻断任务。
+
+交付动作必须使用批准记录中的固定 action、repository、branch 和 commit，不接受批准后重新解析的当前工作区。动作完成后必须回读远端状态，将原始命令和结果写入 Kanban，并通知发起该决策的 Feishu 会话。
+
+Hermes 内置的危险命令审批只回答“是否允许执行一条命令”，不能替代本协议的需求、交付和风险审批。
