@@ -4,7 +4,8 @@
 **PR:** #N
 **标题：**[PR 标题]
 **变更文件：**N
-**评审深度：**完整 / 定向 / 快速扫描
+**`evidence_level`：**`L0` / `L1` / `L1+L2` / `Full`
+**核验深度：**[按 `evidence_level` 选定：`L0` 快速扫描 / `L1` 单模块直接验证 / `L1+L2` 跨模块核对 + 关键路径抽样 / `Full` 全量复算；定义见 `references/evidence-level-verification.md`]
 
 ## 发现
 

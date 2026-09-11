@@ -2,6 +2,8 @@
 
 基于 Google 工程实践，为 Hermes 代码库和 Magnus 的 Python/JS/Go 项目调整。
 
+> **先按档位定深度，再按九维度评审。** 本文件的九个维度是评审**内容**的清单；评审**深度**由交接的 `evidence_level`（`L0` / `L1` / `L1+L2` / `Full`）决定。开始逐维度评估前，先读 `references/evidence-level-verification.md` 选定本档的核验范围与抽样要求。
+
 ## 九个维度
 
 每次代码评审均按以下优先级评估这些维度。

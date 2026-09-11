@@ -56,3 +56,15 @@ Respond with ONLY the absolute path to 00-index.md. No summary, no natural langu
 ## 为什么必须这样做
 
 `delegate_task` 子 Agent 无法访问父 Agent 已加载的技能、记忆或对话历史，只会收到 `context` 字符串。如果该字符串没有包含产物金字塔目录结构，它们将在输出目录根部生成扁平文件。扁平文件可能内容良好，但缺少导航机制，使下游管线 Agent 无法使用。
+
+## 例外：L0 档位不套用本模板
+
+当任务的证据档位为 **L0**（T0/T1、单文件 ≤30 行无依赖，或纯状态 / 澄清 / 审批请求）时，本模板不适用——不要向子 Agent 要求金字塔，改为要求结构化交接消息。额外提示词：
+
+```
+OUTPUT FORMAT: This task is evidence level L0 — do NOT create a pyramid or any
+directories. Return a structured handoff message only:
+status / summary / evidence{changed_files, commands+exit_code} / risks.
+```
+
+档位判定见 `evidence-levels-and-seb.md`。

@@ -88,12 +88,14 @@ hermes --profile orchestrator
 
 ## 入口
 
-**`orchestrator` 是这套角色体系的唯一入口。** 从自然语言需求到可交付变更，都从它开始：
+**`default` 是外部 ingress，`orchestrator` 是研发准入与编排入口。** 普通问答可由 default 直接回答；研发请求统一进入 Kanban `triage` intake，由 default 保留原始请求、项目、验收条件和来源标识，并固定交给 orchestrator。default 不直接改代码、不调用工程 Profile。
 
 ```
 你（需求 / 变更请求）
     ↓
-orchestrator                    ← 入口：校验基线、分解、路由、汇总
+default（Feishu/Cron/Webhook/CLI ingress）
+    ↓ Kanban intake
+orchestrator                    ← 研发准入、分解、路由、汇总
     ├─ 基线未就绪 → 形成候选 revision，交回 Intent Owner 确认
     ├─ researcher               （外部证据不足时）
     ├─ technical-architect      （契约 / 数据模型 / 部署拓扑 / 质量属性受影响时）
@@ -101,7 +103,7 @@ orchestrator                    ← 入口：校验基线、分解、路由、�
     ├─ backend / frontend        （独立 worktree 实现）
     ├─ qa-engineer              （实现后执行验证）
     ├─ debugger                 （根因未知或反复失败时）
-    └─ reviewer                 （对固定 commit SHA 独立评审）
+    └─ reviewer                 （G2 同步必需；G1 默认轻量）
     ↓
 Intent Owner / Delivery Owner / Risk Approver   ← push / 合并 / 部署 / 风险接受
 ```
@@ -118,7 +120,8 @@ hermes --profile orchestrator
 
 ```
 自然语言需求
-  → 需求准入：抽取角色/场景/流程/业务规则/验收标准，形成候选 revision
+  → default 创建 triage intake（保留原始请求与来源标识）
+  → orchestrator 需求准入：抽取角色/场景/流程/业务规则/验收标准，形成候选 revision
   → Intent Owner 确认基线
   → orchestrator 建立 Kanban 任务图
       ├─ researcher（存在外部证据缺口时）
@@ -126,9 +129,12 @@ hermes --profile orchestrator
       └─ qa-engineer（实现前形成验证策略）
   → 各工程师在 Linux 独立 worktree 中通过 Hermes 自带 Codex 技能实现
   → qa-engineer 执行验证（已知缺陷回原实现者；未知根因交 debugger）
-  → reviewer 对固定 commit SHA 独立评审
+  → 按风险选择 L0/L1/L1+L2/Full 证据；SEB 完整性失败则全量复算
+  → reviewer 对固定 commit SHA 独立评审（G0 无 reviewer，G1 轻量，G2 同步）
   → orchestrator 汇总证据，交人类责任人批准 push / 合并 / 部署
 ```
+
+工作区和通知也按风险选择：scratch 用于只读讨论/研究/规划，受控 dir 仅用于非代码串行资产，低风险同 Flow 代码任务可复用 Flow worktree，并行/高风险/破坏性实验使用 per-task worktree。默认 exception-only 通知，常规进展留在 Kanban；流程迁移依次经过 observe、shadow、gray rollout、expand、default。停止由 orchestrator 接收并阻止下游新建/解锁；运行中取消、自动超时降级、声明式门禁和事件 roll-up 暂属平台缺口。
 
 治理细节（工作区隔离、分支约定、质量门顺序、审批矩阵）见
 `skills/orchestration-methodology/references/delivery-governance.md`；

@@ -6,3 +6,6 @@ toolsets:
   - file
   - terminal
   - skills
+onboarding:
+  seen:
+    tool_progress_prompt: true

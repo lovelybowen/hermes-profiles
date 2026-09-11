@@ -39,8 +39,9 @@ R&D 流程要求“已确认需求基线”才能开始实现。本文件定义�
 3. 标记缺口与歧义 → 向 Intent Owner / 用户提问，不自行假设
 4. 需要外部事实的缺口 → 交 researcher，附候选 revision 引用
 5. 写出候选基线草案，计算 content hash 作为候选 revision
-6. 交 Intent Owner 确认
-7. 确认后冻结 revision，进入分解与路由
+6. 完成一次性风险分类：判定 T0–T6 与 G0/G1/G2，决策与依据写入 intake 记录（见 `gate-topology.md`）
+7. 交 Intent Owner 确认
+8. 确认后冻结 revision，进入分解与路由
 ```
 
 ## 3.1 基线存放与跨机器引用
@@ -58,3 +59,16 @@ R&D 流程要求“已确认需求基线”才能开始实现。本文件定义�
 - 不要「先做着看」，也不要自行假设缺失的业务规则。
 - 返回 `status: blocked`，在 `decisions_required` 中列出缺失字段以及需要谁裁决。
 - `researcher` 可以继续收集外部证据，但必须记录其服务的候选 revision。
+
+## 6. 一次性风险分类与门禁判定
+
+基线冻结后、进入分解与路由之前，`orchestrator` 在 intake 完成**一次**风险分类，之后下游全部继承：
+
+- 判定每项工作的 **T 类**（T0–T6）与**风险等级**（R-none / R-low / R-moderate / R-high / R-critical），据此选定 **G0/G1/G2**。
+- 同时下发该项工作的 **证据档位 `evidence_level`**（L0 / L1 / L1+L2 / Full），随 T 类 / 风险等级一并写入任务卡与交接消息，并对下游 reviewer / QA 继承生效；档位阈值与 SEB 规则见共享技能 `artifact-pyramids/references/evidence-levels-and-seb.md`。
+- 决策与依据写入 intake 交接消息，可机器解析：
+  `gate: G1`、`task_class: T4`、`risk: R-moderate`、`evidence_level: L1`、`reason: ...`、`evidence: <基线 revision>`。
+- 分解出的子任务沿用同一门禁模式与证据档位，**不得各自重新判定**；确需变更由 `orchestrator` 出具新判定并记录原因。
+- 信息不足时保守升级到 **G2** 与更高证据档位，不猜。
+
+完整分类表、决策矩阵、每道门禁的进入 / 退出条件与回滚规则见 `gate-topology.md`；证据不足时的阻塞 / 降级处置见 `delivery-governance.md` §6.2。

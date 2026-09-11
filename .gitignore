@@ -30,6 +30,12 @@ profiles/*/.install_id.lock
 profiles/*/.skills_prompt_snapshot.json
 profiles/*/models_dev_cache*
 profiles/*/*.lock
+# runtime DBs & caches
+profiles/*/verification_evidence.db
+profiles/*/projects.db
+profiles/*/provider_models_cache.json
+profiles/*/ollama_cloud_models_cache.json
+profiles/*/tui-theme-boot.json
 
 # ---- User / runtime data ----
 profiles/*/memories/
@@ -40,6 +46,8 @@ profiles/*/workspace/
 profiles/*/home/
 profiles/*/cron/
 profiles/*/hooks/
+profiles/*/lsp/
+profiles/*/pairing/
 profiles/*/skills/.hub/
 profiles/*/skills/.org/
 profiles/*/skills/.bundled_manifest
@@ -47,6 +55,9 @@ profiles/*/skills/.usage.json
 profiles/*/skills/.usage.json.lock
 profiles/*/skills/__pycache__/
 profiles/*/skills/.cache/
+# Hermes bundled-skill seeding: ignore any real directory under skills/
+# (symlinks are files, so this trailing-slash rule leaves them tracked)
+profiles/*/skills/*/
 profiles/*/.tirith-install-failed
 
 # ---- Caches & generated artifacts ----

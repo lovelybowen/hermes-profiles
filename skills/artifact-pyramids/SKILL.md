@@ -30,7 +30,9 @@ metadata:
 
 这四份资料分别定义规范中相互补充且彼此依赖的方面。只加载其中一部分，可能违反内容契约，例如把发现写进 `00-index.md`，或遗漏必需的导航机制。编写任何金字塔文件前都要完整加载这组资料。
 
-下方参考资料表说明各文件的加载时机；上面四份资料在生成金字塔时**始终必需**。其余资料（框架、完整示例、规范文章、思想沿革、来源追溯、复合综合）属于补充材料，在任务需要概念深度或实践范例时加载。
+下方参考资料表说明各文件的加载时机；上面四份资料在生成金字塔时**始终必需**。其余资料（框架、完整示例、规范文章、思想沿革、来源追溯、复合综合、证据等级）属于补充材料，在任务需要概念深度或实践范例时加载。
+
+唯一例外：任务来自 Kanban Flow 且需要**选择证据层深**或**复用他人证据（SEB）**时，`references/evidence-levels-and-seb.md` 与上面四份同为必需——层深决定要建成几层金字塔，选错会让下游要么缺少证据、要么背负空目录。
 
 ## 金字塔
 
@@ -86,6 +88,7 @@ research/dossiers/competitor-profiles.md
 | 委派上下文模板 | 向子 Agent 委派研究时，需要在上下文中加入准确文本以确保产出金字塔 | `references/delegation-context-template.md` |
 | 扁平输出迁移到金字塔 | 把现有扁平 JSON 输出转换为产物金字塔，包括 L1/L2/L3 结构、`00-index` 规则和下游使用方的回退读取 | `references/flat-to-pyramid-migration.md` |
 | 嵌套金字塔模式 | 设计随时间生成多条产物流的单一系统（多阶段、多轮次），通过嵌套在单一根金字塔下避免分散 | `references/nested-pyramid-pattern.md` |
+| 证据等级与 SEB | 需要按任务风险选择 **L0 / L1 / L1+L2 / Full** 层深，或在复用他人证据前核验 SEB 完整性 | `references/evidence-levels-and-seb.md` |
 
 ## 脚本
 
@@ -137,6 +140,29 @@ my-project/
 5. **质量门具有方向性。**材料只有满足目标层级的质量门，才能从 L3（来源）向 L1（摘要）移动。
 6. **`03-dossiers/` 必须保持扁平，不得包含子目录。**档案层是扁平参考资料库。使用带轮次或类别前缀的文件名组织，例如 `epoch-1-validation-edit-3.json`，不要使用嵌套目录。`03-dossiers/` 内的子目录违反扁平文件契约，并会破坏 `SOURCES` 导航路径。
 7. **根级文件持续修订，底层文件保持固定。**在多轮次或多阶段系统中，`00-index.md`、`01-summary/findings.md` 和 `02-analysis/` 中的轨迹文件会随新数据到来而增长，并重写以反映当前状态。`03-dossiers/` 中的文件以及 `02-analysis/` 下按类别拆分的分析文件只创建一次，不再修改，因为它们代表固定时间点。
+
+## 证据等级与 SEB（硬约束）
+
+来自 Kanban Flow 的任务，其**证据层深由 intake 一次性决定，下游继承**，不得由工程师或 reviewer 自行降档。四档为 `L0` / `L1` / `L1+L2` / `Full`：
+
+| 档位 | 适用场景 | 最低产物 | 最低证据强度 |
+|---|---|---|---|
+| `L0` | T0/T1；单文件 ≤30 行且无依赖的 T2/T4；纯状态 / 阻断 / 澄清 / 审批 | **不生成金字塔**，只给结构化交接消息 | 变更清单 + 命令 exit code（或显式「无改动」） |
+| `L1` | 多文件；≤200 行；T3；单模块 T4 | `00-index.md` + `01-summary/` | 固定 commit SHA + blob hash + 命令 exit code/stdout hash |
+| `L1+L2` | 跨模块；新增依赖；接口 / 契约变化 | 增加 `02-analysis/` 维度文件 | 上述全部 + 接口 / 依赖变化对照证据 |
+| `Full` | T5/T6；迁移；公开 API；安全；高风险 | 三层齐备（含 `03-dossiers/`） | 上述全部 + 完整 SEB + 门禁产物路径 |
+
+三条不可协商的规则：
+
+1. **只建需要有的层。** `L1` 档位不创建 `03-dossiers/`；不创建空的层级目录。
+2. **复用 SEB 前必须先做完整性核验。** 核验 `commit` 同 SHA、`baseline` 一致、`changed_files` 的 blob hash 与 `gate_artifacts` 的 `sha256` 全部匹配、命令 `exit_code` 与结论一致、改动集与 tree diff 无遗漏无多余。任一项不满足即**停止复用并全量复算**，不存在「部分采信」。
+3. **降级的是置信度，不是门禁要求。** 证据不足时标 `confidence: reduced` 并列出 `uncovered`，或直接阻断；Full 档缺 SEB 不得降级为 L1 放行。
+
+**平台边界：** 这些是文档层纪律。运行时「自动门禁超时降级 / 自动全量复算」尚不存在（平台缺口），不得声称已实现。
+
+交接消息必须声明 `evidence_level`，并在 `evidence` 中带上 `commit`、`baseline`、`changed_files`、`commands`、`seb_integrity`，预算耗尽时追加 `confidence: reduced` 与 `uncovered`。（完整字段与取值见下方参考资料。）
+
+完整定义（升级触发器、SEB 最小字段、核验步骤、处置决策表、交接字段）见 `references/evidence-levels-and-seb.md`。
 
 ## 不适用场景
 

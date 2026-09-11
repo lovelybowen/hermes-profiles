@@ -2,6 +2,19 @@
 
 reviewer 角色作为看板群体的质量门。本参考资料定义如何评估工作者输出，以及如何决定通过或阻断。
 
+## 适用范围与术语映射（先读）
+
+本文件描述的是**群体（swarm）模式**的质量门：结论令牌是 `{"gate": "pass" | "block"}`，表示 reviewer 作为群工作者与综合者之间的门给出的通过 / 阻断结论。
+
+**Kanban G1 / G2 模式不使用该令牌。** Kanban 侧的 reviewer 结论走另一套术语，两者不得互换：
+
+| 模式 | 结论载体 | 使用术语 |
+|------|----------|----------|
+| 群体（swarm）模式 | 结论块中的 `{"gate": "pass" \| "block"}`（本文件） | 通过 / 阻断 |
+| Kanban G1 / G2 模式 | `review_status`（交接状态）+ `kanban_request_changes`（退回原实现者） | 通过 / 退回修改 / 阻断 |
+
+不要把 `{"gate": ...}` 当作 Kanban reviewer 的结论格式，也不要用 `review_status` / `kanban_request_changes` 描述群体门。Kanban 侧的档位与核验深度见 `references/evidence-level-verification.md`；`evidence_level` 与 `seb_integrity` 的定义以 `skills/artifact-pyramids/references/evidence-levels-and-seb.md` 为**唯一权威出处**。
+
 ## Reviewer 的职责
 
 reviewer 位于并行工作者与综合者之间，充当质量门。你不生成实现输出，而是评估它；你不修复问题，而是标记问题。

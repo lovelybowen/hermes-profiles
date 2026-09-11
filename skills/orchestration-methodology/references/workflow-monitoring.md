@@ -13,6 +13,8 @@
 | Profile | 负责当前尝试的角色 |
 | Inputs | 该角色可以依赖的产物路径和决策 |
 | Completion criterion | 可观察、能判断任务完成的条件 |
+| Gate | intake 一次性决定的门禁模式（G0/G1/G2），下游继承 |
+| Evidence | intake 一次性下发的 `evidence_level`（L0 / L1 / L1+L2 / Full）；交接给 reviewer 时附 `seb_integrity`（passed / failed / not_required） |
 | Downstream consumer | 下一步需要结果的角色或人 |
 | Status | `queued`、`ready`、`running`、`blocked`、`rework`、`passed` 或 `skipped` |
 
@@ -25,6 +27,8 @@
 | 阻断原因 | 路由目标 |
 |---|---|
 | 证据缺失或没有支持 | `researcher` |
+| 证据档位低于 intake 下发的 `evidence_level`，或 SEB 必需字段缺失 | 原生产者（补齐 SEB 后重跑受影响门禁；处置表见 `delivery-governance.md` §6.2） |
+| `seb_integrity: failed`（hash 不一致 / commit 漂移 / baseline 漂移） | 停止复用 + 全量复算，退回受影响分支；风险按 `Risk Approver` 升级 |
 | 架构或契约冲突 | `technical-architect` |
 | 已知实现缺陷 | `backend-engineer` 或 `frontend-engineer` |
 | 根因未知或技术故障反复发生 | `debugger` |
@@ -35,6 +39,8 @@
 | 基线缺失、模糊或相互冲突 | `Intent Owner`，受影响分支保持 `blocked` |
 
 返工后，重新执行所有受变更影响的下游检查。行为性代码变更通常先返回 `qa-engineer`，再进入 `reviewer`。架构变更则先返回受影响的工程师，随后再通过这些质量门。Agent 不修改已确认需求基线；改变业务语义的决定必须由 `Intent Owner` 发布新的基线 revision。
+
+门禁模式的继承与缺陷回收路径（G0 不建 reviewer；G1 交接含 `review_status: pending`，发现阻断缺陷时综合产物标 `superseded`；G2 reviewer 为硬父卡）见 `gate-topology.md`。worker 不得自行改变继承来的门禁模式。
 
 ## 重试规则
 
@@ -49,6 +55,7 @@
 
 - 每个必需子任务都已 `passed`，或明确说明原因后 `skipped`；
 - 每个已配置 QA 或评审门都已通过；
+- 每个交接给 `reviewer` 的证据包都携带与 intake 下发一致的 `evidence_level`（L0 / L1 / L1+L2 / Full），且其 `seb_integrity` 为 `passed` 或 `not_required`；缺失或失败时只能在 `confidence: reduced` + `uncovered` 下部分裁决，绝不伪装通过；
 - 已接受风险和未解决决策都明确其人类负责人；
 - 编排者能够将每项结论追溯到支持它的产物。
 - 本地构建或测试证据没有被表述为生产部署或运行证据。

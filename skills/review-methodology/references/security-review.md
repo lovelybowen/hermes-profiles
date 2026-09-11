@@ -2,6 +2,10 @@
 
 在漏洞进入生产环境之前，于代码中系统化发现漏洞的方法。
 
+## 档位与核验深度
+
+安全相关任务（含 T6）的证据档位为 **`Full`**：交接的 `evidence_level` 必须为 `Full` 且携带 `seb_integrity: passed`，核验深度按 `references/evidence-level-verification.md` 的 `Full` 档**全量执行**（build / browser / diff / SHA 逐项复算），不得以抽样替代或降档放行。档位阈值与 SEB 判定的唯一权威出处是 `skills/artifact-pyramids/references/evidence-levels-and-seb.md`；交接字段名以 `skills/orchestration-methodology/references/delivery-governance.md` §6 为准。
+
 ## 安全评审思维
 
 不同于代码评审，安全评审假定代码存在问题，并寻找证明方式。要问的不是“它是否正确工作？”，而是“攻击者会如何利用它？”
