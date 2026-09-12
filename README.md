@@ -2,6 +2,8 @@
 
 这是面向 AI Native R&D 协作的 Hermes 角色配置集。每个角色配置都封装角色身份（`SOUL.md`）、技能依赖、运行配置（`config.yaml`），可作为 Hermes Agent 部署。
 
+想快速向团队介绍定位、协作流程、产物金字塔和 Hermes 嵌入方式，请先阅读[对外说明文档](docs/hermes-profiles-guide.md)。
+
 这些角色配置具有明确的设计主张，并采用 Hermes 原生模式：
 
 - 产物金字塔输出格式（渐进披露、以路径作为交接内容）
