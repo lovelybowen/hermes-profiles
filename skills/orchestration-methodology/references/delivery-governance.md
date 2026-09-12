@@ -27,6 +27,10 @@
 
 ## 2. 工作区隔离与 workspace kind 决策
 
+### 2.0 项目上下文绑定
+
+工作区路由发生在**某个项目的 board** 上。每个接入项目在仓库根维护 `AGENTS.md`（构建命令、责任人映射、worktree 约定；模板见 hermes-profiles 仓库 `docs/project-agents-template.md`），并为项目建独立 Kanban board（`hermes kanban boards create <slug>` + `set-default-workdir`）。orchestrator 在 intake 校验必填区；缺失即阻塞，交回 `Intent Owner`。规则细节见共享技能 `project-context-binding`。
+
 ### 2.1 工作区类型
 
 | 任务类型 | 工作区 | 完成后 |

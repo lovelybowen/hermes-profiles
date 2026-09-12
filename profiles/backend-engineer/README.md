@@ -5,8 +5,14 @@
 ## 安装
 
 ```bash
-git clone https://github.com/lovelybowen/hermes-profiles.git ~/hermes-profiles
-ln -s ~/hermes-profiles/profiles/backend-engineer ~/.hermes/profiles/
+# 方式一：安装独立 distribution 仓库（推荐）
+hermes profile install github.com/lovelybowen/backend-engineer-agent --alias
+
+# 方式二：克隆本仓库后一键安装全部 8 角色
+git clone https://github.com/lovelybowen/hermes-profiles.git && cd hermes-profiles
+./scripts/install-all.sh
+
+# 启动（必须用 manifest 原名安装，不要 --name 改名，否则 Kanban 按名路由断链）
 hermes --profile backend-engineer
 ```
 

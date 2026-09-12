@@ -17,13 +17,14 @@
 ## 安装
 
 ```bash
-# 克隆角色配置仓库
-git clone https://github.com/lovelybowen/hermes-profiles.git ~/hermes-profiles
+# 方式一：安装独立 distribution 仓库（推荐）
+hermes profile install github.com/lovelybowen/technical-architect-agent --alias
 
-# 将角色配置链接到 ~/.hermes/profiles/
-ln -s ~/hermes-profiles/profiles/technical-architect ~/.hermes/profiles/
+# 方式二：克隆本仓库后一键安装全部 8 角色
+git clone https://github.com/lovelybowen/hermes-profiles.git && cd hermes-profiles
+./scripts/install-all.sh
 
-# 切换角色配置（已包含技能，无需单独安装）
+# 启动（必须用 manifest 原名安装，不要 --name 改名，否则 Kanban 按名路由断链）
 hermes --profile technical-architect
 ```
 

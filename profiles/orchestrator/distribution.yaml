@@ -1,7 +1,7 @@
 name: orchestrator
 version: 1.0.0
 description: R&D 编排者 - 从已确认需求基线建立 Flow，分解研发工作、按条件路由专家、监控质量门并汇总可追溯证据。
-hermes_requires: '>=0.12.0'
+hermes_requires: '>=0.21.0'
 author: lovelybowen
 license: MIT
 env_requires:

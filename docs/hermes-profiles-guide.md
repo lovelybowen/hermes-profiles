@@ -37,7 +37,7 @@ flowchart LR
 | `skills/` | 方法论、参考资料和技能脚本的共享池 | Hermes Profile 本身 |
 | `profiles/` | 角色身份、工具集、技能依赖和运行协议 | 通用 Agent 配置，可直接脱离 Hermes 运行 |
 | `plugins/` | 可选的 Hermes 插件，例如 `rd-approval` | 主流程的必需依赖 |
-| `default` | 部署侧的 Feishu/Cron/Webhook/CLI ingress | 本仓库中的一个 Profile |
+| `default` | 部署侧的投递通道（Telegram/Feishu/Cron/Webhook/CLI → Kanban intake） | 本仓库中的一个 Profile 或研发决策角色 |
 | `orchestrator` | 研发准入、任务分解、专家路由、证据综合 | 业务决策者或风险批准者 |
 
 ## 2. 仓库结构与角色
@@ -272,15 +272,19 @@ cp -r ~/.hermes/profiles/orchestrator/plugins/rd-approval \
 
 以下均为规划方向，当前仓库不应把它们描述为已经由 Hermes 平台自动完成。
 
-### 短期：降低安装和运行摩擦
+本仓库的目标不是服务单一项目，而是沉淀通用的技能与角色协议，支撑多个项目的长期研发。围绕这个目标，路线图在三个时间尺度上展开；其中「项目接入约定」「技能回流」「版本兼容矩阵」三项直接服务于多项目通用化。
+
+### 短期：项目接入约定与安装摩擦
 
 - ~~提供跨平台安装脚本~~ 已完成：`hermes profile install` + `scripts/install-all.sh`。
+- **项目上下文绑定（AGENTS.md 约定）**：角色 Profile 保持项目无关；项目差异统一落在各项目仓库根目录的 `AGENTS.md` 中声明——构建 / 测试 / lint 命令、worktree 与分支约定、部署边界、Intent / Delivery / Risk 责任人映射。orchestrator 建卡时 `workspace_path` 指向该项目的 worktree，Hermes 按工作目录自动发现并注入该 `AGENTS.md`。验收标准：新项目接入只需「项目仓库写 AGENTS.md + 为项目建独立 Kanban board（`hermes kanban boards`）」，不改动任何 Profile。
+- **版本兼容矩阵**：维护 Profile 版本 × Hermes 版本的最小兼容矩阵；每个 distribution 的 README 登记已验证的 Hermes 版本（当前基线 v0.21.x）。SOUL 与文档中引用的平台能力（`kanban.orchestrator_profile`、Kanban 卡片 `--goal`、PR completion contract）需声明最低 Hermes 版本；升级 Hermes 后按矩阵判断哪些角色需要跟进更新。
 - 增加跨平台的路径与权限检查（Windows 路径、行尾、大小写不敏感文件系统）。
-- 为 Profile 和共享技能增加版本登记与兼容矩阵。
 - 启动前检查技能数量、`.no-bundled-skills` 和运行时污染。
 
-### 中期：让证据可机器校验
+### 中期：技能回流闭环与证据机器校验
 
+- **技能回流协议**：当前技能流向是单向的（`skills/` 池 → 物化副本 → distribution 分发）。补齐反向闭环：角色在任务执行中产生的技能改进（Hermes 支持 agent 创建 / 修改技能），以「改进建议 + 触发场景 + 涉及技能」的形式归集到 Kanban 任务或定期评审；由人审查后 PR 进本仓库共享池，运行 `sync_skills.py` 物化并 bump distribution 版本，各端 `hermes profile update` 跟进。验收标准：完整跑通一次「项目中发现方法论缺陷 → 池内改进 → 全团队角色更新」的回路，本仓库从分发源升级为团队方法论中枢。
 - 固化结构化交接 Schema，并对字段做静态校验。
 - 自动生成 `changed_files`、blob hash、命令 exit code 和 stdout hash。
 - 自动核验 SEB 完整性，发现 SHA、baseline 或产物 hash 漂移时停止复用。

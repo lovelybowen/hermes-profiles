@@ -115,6 +115,49 @@ def declared_skills(profile_yaml: dict[str, Any], profile_path: Path) -> set[str
     return declared
 
 
+def check_compat_matrix(root: Path, profile_dirs: list[Path], errors: list[str]) -> None:
+    """Cross-check docs/compatibility-matrix.md against each distribution.yaml.
+
+    The matrix is the human-maintained source of truth for tested Hermes
+    versions; the manifest `hermes_requires` is what the installer enforces.
+    They must agree: every profile row must exist and carry the same
+    hermes_requires spec as its manifest."""
+    matrix_path = root / "docs" / "compatibility-matrix.md"
+    if not matrix_path.is_file():
+        errors.append("docs/compatibility-matrix.md: missing — maintainer compatibility matrix required")
+        return
+    text = matrix_path.read_text(encoding="utf-8")
+    import re as _re
+
+    rows: dict[str, str] = {}
+    for line in text.splitlines():
+        m = _re.match(r"^\|\s*([a-z][a-z0-9-]*)\s*\|\s*[\d.]+\s*\|\s*`([^`]*)`\s*\|", line)
+        if m:
+            rows[m.group(1)] = m.group(2)
+    if not rows:
+        errors.append("docs/compatibility-matrix.md: no profile rows parsed — check table format")
+        return
+    for profile_dir in profile_dirs:
+        name = profile_dir.name
+        manifest_path = profile_dir / "distribution.yaml"
+        try:
+            manifest = load_yaml(manifest_path)
+        except ValueError:
+            continue  # already reported by the manifest check above
+        spec = str(manifest.get("hermes_requires") or "").strip()
+        row = rows.get(name)
+        if row is None:
+            errors.append(
+                f"docs/compatibility-matrix.md: missing row for profile {name!r} — "
+                "add it with the same hermes_requires as its manifest"
+            )
+        elif row != spec:
+            errors.append(
+                f"docs/compatibility-matrix.md: hermes_requires for {name!r} is {row!r} "
+                f"but manifest says {spec!r} — keep them in sync"
+            )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".", help="Repository root")
@@ -208,6 +251,9 @@ def main() -> int:
     # Materialized copies match the pool (delegates the deep tree comparison).
     for profile_dir in profile_dirs:
         errors += sync_skills.sync_profile(profile_dir, check_only=True)
+
+    # Compatibility matrix agrees with each manifest's hermes_requires.
+    check_compat_matrix(root, profile_dirs, errors)
 
     if errors:
         print("Profile validation failed:", file=sys.stderr)

@@ -120,14 +120,14 @@ hermes profile update orchestrator
 
 ## 入口
 
-**`default` 是外部 ingress，`orchestrator` 是研发准入与编排入口。** 普通问答、维护、修复、配置、文档、脚本、工具类操作由 default 直接处理；**只有「对某个项目的基线需求开发」才进入 Kanban `triage` intake**，由 default 保留原始请求、项目、验收条件和来源标识，并固定交给 orchestrator 走 R&D 流程。default 不直接改业务代码、不调用工程 Profile。
+**`orchestrator` 是研发流程的唯一入口；`default` 是部署侧的投递通道（ingress），不是研发决策角色。** 所有触发源（Telegram/Feishu、Cron 定时读取需求仓库、Webhook、CLI）产生的研发请求，都以 assignee 为 `orchestrator` 的 Kanban `triage` intake 任务进入流程，保留原始请求、项目、验收条件和来源标识。非研发类操作（日常问答、Hermes 自身维护、配置调整）由 `default` 直接处理，不进 R&D 流程；`default` 不直接改业务代码、不调用工程 Profile。
 
 ```
-你（需求 / 变更请求）
+你（需求 / 变更请求，来自 TG / Feishu / Cron / Webhook / CLI）
     ↓
-default（Feishu/Cron/Webhook/CLI ingress）
-    ↓ Kanban intake
-orchestrator                    ← 研发准入、分解、路由、汇总
+default（部署侧投递通道，只做分流：研发请求 → Kanban intake，其余直接处理）
+    ↓ Kanban intake（assignee: orchestrator）
+orchestrator                    ← 研发流程唯一入口：准入、分解、路由、汇总
     ├─ 基线未就绪 → 形成候选 revision，交回 Intent Owner 确认
     ├─ researcher               （外部证据不足时）
     ├─ technical-architect      （契约 / 数据模型 / 部署拓扑 / 质量属性受影响时）
@@ -142,13 +142,13 @@ Intent Owner / Delivery Owner / Risk Approver   ← push / 合并 / 部署 / 风
 
 其余 7 个角色是**按需参与者**，由 `orchestrator` 通过 Kanban 任务拉入，不直接面向用户接单。
 
-`default` 可以作为 Feishu/Cron 入口：只在基线需求开发时创建 assignee 为 `orchestrator` 的 intake 任务，其余场景直接处理；编排和执行仍由 Kanban Flow 完成。启动编排入口的命令见上文「使用角色配置」。
+触发源（Telegram/Feishu、Cron 读取需求仓库、Webhook、CLI）通过 `default` 投递：只有基线需求开发会创建 assignee 为 `orchestrator` 的 intake 任务，其余场景 `default` 直接处理；编排和执行仍由 Kanban Flow 完成，`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。启动编排入口的命令见上文「使用角色配置」。
 
 ## 工作流
 
 ```
 自然语言需求
-  → default 创建 triage intake（保留原始请求与来源标识）
+  → default 分流：研发请求创建 triage intake（保留原始请求与来源标识），非研发请求直接处理
   → orchestrator 需求准入：抽取角色/场景/流程/业务规则/验收标准，形成候选 revision
   → Intent Owner 确认基线
   → orchestrator 建立 Kanban 任务图

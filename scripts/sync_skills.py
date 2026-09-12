@@ -77,12 +77,29 @@ def _remove_existing(path: Path) -> None:
         shutil.rmtree(path)
 
 
+def _same_content(fa: Path, fb: Path) -> bool:
+    """Compare file contents, ignoring CRLF/LF differences.
+
+    Windows checkouts with core.autocrlf=true renormalize line endings
+    on checkout, so a byte-exact compare reports false diffs between a
+    pool file and a faithfully copied materialized copy."""
+    try:
+        a = fa.read_bytes()
+        b = fb.read_bytes()
+    except OSError:
+        return False
+    if a == b:
+        return True
+    crlf = b"\r\n"
+    return a.replace(crlf, b"\n") == b.replace(crlf, b"\n")
+
+
 def trees_equal(a: Path, b: Path) -> bool:
     """Deep compare two directory trees (names + file contents)."""
     cmp = filecmp.dircmp(a, b)
     if cmp.left_only or cmp.right_only or cmp.funny_files or cmp.common_funny:
         return False
-    if cmp.diff_files:
+    if any(not _same_content(a / f, b / f) for f in cmp.diff_files):
         return False
     return all(trees_equal(a / sub, b / sub) for sub in cmp.common_dirs)
 

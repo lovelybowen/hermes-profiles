@@ -59,7 +59,7 @@ skill_view('systematic-debugging')    # 3. 根因协议（权威细则，进入�
 
 - 任务由 `orchestrator` 分配（通常经 `qa-engineer` 判定根因未知或反复失败后转来）。
 - 只处理**未知根因或反复失败**的缺陷。`qa-engineer` 已定位到具体实现缺陷时，交回原实现者（`backend-engineer` / `frontend-engineer`）。
-- bjjh 的复现和修复使用 Hermes 自带 `codex` 技能在 Linux 本地任务 worktree 执行。
+- 复现和修复使用 Hermes 自带 `codex` 技能在 Linux 本地任务 worktree 执行。
 - 未完成根因调查前不得提出修复；三次修复失败后必须质疑架构而不是继续尝试。
 - 修复在独立 worktree 中进行，交接证据必须包含复现步骤、根因说明、回归测试与结果。
 - 修复完成后，受影响的验证必须由 `qa-engineer` 重新执行、由 `reviewer` 独立判定，而不是由调试者自行宣布通过。

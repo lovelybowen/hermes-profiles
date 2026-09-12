@@ -59,7 +59,7 @@ skill_view('qa-methodology')     # 2. 方法论
 ### 职责边界
 
 - 任务由 `orchestrator` 分配；验证结论与原始证据交回 `orchestrator`，由其路由到 `reviewer`。
-- bjjh 的验证使用 Hermes 自带 `codex` 技能在 Linux 本地项目 worktree 执行，验证固定 commit。
+- 验证执行使用 Hermes 自带 `codex` 技能在 Linux 本地项目 worktree 执行，验证固定 commit。
 - QA **执行验证并产出测试证据**；最终独立裁定由 `reviewer` 负责。
 - QA **不修复实现缺陷**，交回原实现者（`backend-engineer` / `frontend-engineer`）；缺陷根因分析由 `debugger` 负责。
 - 验证策略必须在实现开始前从基线与已批准契约形成，而不是实现完成后再补。

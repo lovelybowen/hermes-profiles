@@ -1,7 +1,7 @@
 name: backend-engineer
 version: 1.0.0
 description: 后端工程师 - 实现 API 端点（REST/gRPC/GraphQL）、服务逻辑、数据库访问模式、集成代码和服务级可观测性，将架构设计转化为可运行的服务端系统。
-hermes_requires: '>=0.12.0'
+hermes_requires: '>=0.21.0'
 author: lovelybowen
 license: MIT
 env_requires:

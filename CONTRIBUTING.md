@@ -20,6 +20,8 @@
 
 ## 技能共享（物化副本）
 
+> 详见下方「技能回流」。技能不只是从池分发到角色——角色在任务中发现的方法论缺陷应通过回流协议回到池里。
+
 角色配置通过根级 `skills/` 目录共享技能（单一来源）。各角色 `skills/` 下的副本由脚本物化为**真实文件**：
 
 ```
@@ -64,6 +66,17 @@ profiles/some-profile/skills/    ← 真实副本（脚本生成）
 
 `profiles/<name>/.no-bundled-skills` 标记必须保留在版本库中并随 distribution 安装，
 否则全新安装的 profile 第一次运行会被播种整套自带技能。
+
+## 技能回流（从任务到池）
+
+技能池的流向是双向的。角色在真实任务中发现方法论缺陷时，按 `skills/skill-feedback-loop/SKILL.md` 的协议回流：
+
+1. 任务卡 comment 写 `skill_feedback`（skill / type / scenario / problem / proposal / evidence）。
+2. orchestrator 在 Flow 收尾汇总，或由 maintainer 定期巡检 board。
+3. 人审查后以 PR 进共享池（或先开 `.github/ISSUE_TEMPLATE/skill-feedback.md` Issue 讨论）。
+4. `python3 scripts/sync_skills.py` 物化副本并 bump distribution 版本，各端 `hermes profile update`。
+
+约束：回流不阻塞当前任务；`proposal` 必须可落地为 PR；改动进池前不生效。
 
 ## 开始贡献
 
