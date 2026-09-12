@@ -56,6 +56,12 @@ skill_view('artifact-pyramids')  # 1. 输出格式
 skill_view('qa-methodology')     # 2. 方法论
 ```
 
+任务执行中命中技能回流触发条件（规则缺失 / 与实际不符 / 更优路径 / 同类失败重复 ≥2 次）时，追加加载并按协议在任务卡 comment 写 `skill_feedback`：
+
+```python
+skill_view('skill-feedback-loop') # 条件加载：技能回流协议
+```
+
 ### 职责边界
 
 - 任务由 `orchestrator` 分配；验证结论与原始证据交回 `orchestrator`，由其路由到 `reviewer`。

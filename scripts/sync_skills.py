@@ -12,7 +12,8 @@ and Windows clones with ``core.symlinks=false`` degrade symlinks into plain
 text files containing the target path — both break installation.
 
 Usage:
-    python3 scripts/sync_skills.py            # materialize all profiles
+    python3 scripts/sync_skills.py            # materialize all profiles (macOS/Linux)
+    python scripts/sync_skills.py             # Windows: use `python` (python3 exits 9009)
     python3 scripts/sync_skills.py --check    # verify copies match the pool (CI)
     python3 scripts/sync_skills.py orchestrator   # one profile only
 """
@@ -26,6 +27,12 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
+
+# stdout may be a GBK console on Windows hosts; force UTF-8 so the ✓/✗ marks
+# below never raise UnicodeEncodeError.
+for _stream in (sys.stdout, sys.stderr):
+    if _stream and hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SKILLS_POOL = REPO_ROOT / "skills"

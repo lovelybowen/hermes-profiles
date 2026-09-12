@@ -18,10 +18,20 @@
 # Run before committing, or when `validate_profiles.py` reports real paths inside
 # a profile's skills/ directory.
 set -euo pipefail
+
+# python3 is the norm on macOS/Linux; on Windows git-bash `python3` exits 9009.
+run_python() {
+  if command -v python3 >/dev/null 2>&1 && python3 -c "import sys" >/dev/null 2>&1; then
+    python3 "$@"
+  else
+    python "$@"
+  fi
+}
+
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 echo "cleaning runtime state under profiles/ ..."
-python3 - <<'PY'
+run_python - <<'PY'
 import pathlib, shutil
 
 removed: list[str] = []
@@ -111,4 +121,4 @@ for runtime_dir in (".hub", ".org", "__pycache__", ".cache", ".tmp"):
 
 print(f"removed {len(removed)} runtime path(s)")
 PY
-echo "done. then verify with: python3 scripts/validate_profiles.py"
+echo "done. then verify with: python scripts/validate_profiles.py (Windows) or python3 ... (macOS/Linux)"

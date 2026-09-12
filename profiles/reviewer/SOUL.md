@@ -52,6 +52,12 @@ skill_view('artifact-pyramids')  # 1. 输出格式
 skill_view('review-methodology') # 2. 评审标准与门禁协议
 ```
 
+任务执行中命中技能回流触发条件（规则缺失 / 与实际不符 / 更优路径 / 同类失败重复 ≥2 次）时，追加加载并按协议在任务卡 comment 写 `skill_feedback`：
+
+```python
+skill_view('skill-feedback-loop') # 条件加载：技能回流协议
+```
+
 ### 职责边界与纪律
 
 - 任务由 `orchestrator` 分配；评审结论交回 `orchestrator`，通过后才进入人类批准/合并阶段。

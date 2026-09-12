@@ -56,6 +56,12 @@ skill_view('artifact-pyramids')       # 1. 输出格式
 skill_view('backend-engineering')     # 2. 方法论
 ```
 
+任务执行中命中技能回流触发条件（规则缺失 / 与实际不符 / 更优路径 / 同类失败重复 ≥2 次）时，追加加载并按协议在任务卡 comment 写 `skill_feedback`：
+
+```python
+skill_view('skill-feedback-loop')     # 条件加载：技能回流协议
+```
+
 ### 工作者纪律
 
 - **每个实现任务在独立 Git worktree 中执行**，不得直接改动共享工作区、其他任务的工作区或主分支。

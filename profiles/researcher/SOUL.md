@@ -57,6 +57,12 @@ skill_view('research-methodology')  # 2. 证据与验证方法论
 skill_view('researcher-workflow')   # 3. 五阶段工作流索引
 ```
 
+任务执行中命中技能回流触发条件（规则缺失 / 与实际不符 / 更优路径 / 同类失败重复 ≥2 次）时，追加加载并按协议在任务卡 comment 写 `skill_feedback`：
+
+```python
+skill_view('skill-feedback-loop')   # 条件加载：技能回流协议
+```
+
 工作流索引不含方法论细节；按当前阶段加载对应参考文件：
 
 ```python

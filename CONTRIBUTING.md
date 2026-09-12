@@ -71,12 +71,24 @@ profiles/some-profile/skills/    ← 真实副本（脚本生成）
 
 技能池的流向是双向的。角色在真实任务中发现方法论缺陷时，按 `skills/skill-feedback-loop/SKILL.md` 的协议回流：
 
-1. 任务卡 comment 写 `skill_feedback`（skill / type / scenario / problem / proposal / evidence）。
-2. orchestrator 在 Flow 收尾汇总，或由 maintainer 定期巡检 board。
-3. 人审查后以 PR 进共享池（或先开 `.github/ISSUE_TEMPLATE/skill-feedback.md` Issue 讨论）。
-4. `python3 scripts/sync_skills.py` 物化副本并 bump distribution 版本，各端 `hermes profile update`。
+1. 任务卡 comment 写 `skill_feedback`（skill / type / scenario / problem / proposal / evidence）。写入前先用 `python scripts/validate_skill_feedback.py <file>.yaml`（Windows；macOS/Linux 用 `python3`）校验格式、枚举与重复。
+2. 归集**当前为人工流程**：任务收尾时由人（或 orchestrator 会话）把 comment 抄录为 GitHub Issue（模板 `.github/ISSUE_TEMPLATE/skill-feedback.yml`）；board 扫描与自动汇总属于规划项（见 `docs/hermes-profiles-guide.md` 第 7 节）。
+3. 人审查后以 PR 进共享池（或先开 Issue 讨论）。
+4. `python3 scripts/sync_skills.py` 物化副本并 bump distribution 版本（版本锁定见下节），各端 `hermes profile update`。
 
 约束：回流不阻塞当前任务；`proposal` 必须可落地为 PR；改动进池前不生效。
+
+## 版本锁定（防止版本漂移）
+
+技能改动 → distribution 版本 bump → 各端 `hermes profile update`，这条链靠 `scripts/version_lock.json` 机器校验：`validate_profiles.py` 计算每个 profile 可提交内容的 hash，内容变化而版本未 bump 时校验失败。流程：
+
+1. 修改 profile 内容（含物化的技能副本）。
+2. bump 对应 `profiles/<role>/distribution.yaml` 的 `version:`。
+3. 运行 `python scripts/validate_profiles.py --bump-lock <role>`（Windows；macOS/Linux 用 `python3`）更新锁定文件，随改动一起提交。
+
+## Windows 命令约定
+
+文档中的 `python3` 在 macOS/Linux CI 上直接可用；Windows 机器上 `python3` 退出码 9009，请使用 `python`（或 `py -3`）。校验与同步脚本已内置 UTF-8 输出处理，GBK 控制台不会再因 ✓/✗ 字符报 `UnicodeEncodeError`。
 
 ## 开始贡献
 

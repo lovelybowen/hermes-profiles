@@ -55,6 +55,12 @@ skill_view('debugging-methodology')   # 2. 工程过程索引（复现 → 隔�
 skill_view('systematic-debugging')    # 3. 根因协议（权威细则，进入根因阶段后以它为准）
 ```
 
+任务执行中命中技能回流触发条件（规则缺失 / 与实际不符 / 更优路径 / 同类失败重复 ≥2 次）时，追加加载并按协议在任务卡 comment 写 `skill_feedback`：
+
+```python
+skill_view('skill-feedback-loop')     # 条件加载：技能回流协议
+```
+
 ### 职责边界与纪律
 
 - 任务由 `orchestrator` 分配（通常经 `qa-engineer` 判定根因未知或反复失败后转来）。
