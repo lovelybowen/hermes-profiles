@@ -25,7 +25,7 @@ hermes-profiles/
 │   ├── software-architecture-analysis/
 │   ├── systematic-debugging/
 │   └── codex-exec-runner/
-├── profiles/                        ← Agent 角色配置（技能通过符号链接引用）
+├── profiles/                        ← Agent 角色配置（技能为物化真实副本）
 │   ├── backend-engineer/
 │   ├── debugger/
 │   ├── frontend-engineer/
@@ -56,7 +56,7 @@ hermes-profiles/
 | `README.md` | 面向人的使用指南 |
 | `AGENTS.md` | 指向 `SOUL.md` 的索引 + 该角色的上下游接口 |
 | `.env.example` | 所需凭据清单（实际 `.env` 被 gitignore） |
-| `skills/` | 指向仓库根 `skills/` 池的相对符号链接 |
+| `skills/` | 从仓库根 `skills/` 池物化的真实文件副本（sync_skills.py 生成） |
 
 ### 为什么运行协议只放在 SOUL.md
 
@@ -133,17 +133,16 @@ Hermes 只索引名为 `SKILL.md` 的文件，且 `skill_view` 不支持 `父/�
 - 技能应能在原生 Hermes 安装中工作，不依赖 council、cashew 或其他 Agent 专用基础设施
 - 研究类技能默认使用 Hermes 原生工具（`web_search` / `web_extract` / browser）；外部工具只能作为**可选增强**，不得作为前置依赖
 
-## 符号链接规则
+## 技能副本规则（物化，非符号链接）
 
-- 所有符号链接都必须使用**相对路径**，不能使用绝对路径
-- 从 `profiles/<name>/skills/` 出发，目标为 `../../../skills/<skill-name>`
-- 从 `profiles/<name>/skills/` 指向分类技能时为 `../../../skills/<category>/<skill-name>`
-- 符号链接由 Git 以模式 `120000` 跟踪，在 macOS/Linux 上执行 `git clone` 后可正确重建
-- 用普通文本文件冒充符号链接（Git 模式 `100644`）**不会被 Hermes 加载**，会导致 `Skills: 0`
+- 各角色 `skills/` 下是**真实文件副本**，由 `python3 scripts/sync_skills.py` 按 `profile.yaml` 的依赖声明从仓库根 `skills/` 池物化生成
+- 禁止符号链接：`hermes profile install` 硬性拒绝含 symlink 的 payload；Windows 克隆（`core.symlinks=false`）会把 symlink 退化为文本文件
+- 修改共享池中的技能后，必须运行 `python3 scripts/sync_skills.py` 重新物化并连同副本一起提交（CI 会校验副本与池一致）
+- 新增技能：先放入 `skills/` 池，再在 `profile.yaml` 的 `skills.required` 里声明，然后跑 sync_skills.py
 
 ## 凭据与运行时状态
 
-Profile 目录通过符号链接直接位于 Git 仓库内，因此 Hermes 的运行时产物会落在仓库目录中。`.gitignore` 已排除：
+本仓库只作**分发源**，不再作为运行目录（旧符号链接 + 仓库内运行的布局已废弃）。若仍在仓库内运行过 Hermes，其运行时产物由 `.gitignore` 排除：
 
 - 凭据：`profiles/*/.env`、`profiles/*/auth.json`
 - 状态：`state.db*`、`sessions/`、`memories/`、`logs/`、`cron/`、`cache/`、`*.lock`
@@ -151,40 +150,29 @@ Profile 目录通过符号链接直接位于 Git 仓库内，因此 Hermes 的�
 
 新增任何会在 Profile 根目录产生文件的配置时，同步补充 `.gitignore`。
 
-### 已知上游交互：符号链接技能会被误判为「未安装技能」
+### 历史问题：符号链接技能被误判为「未安装技能」（已通过本次改造解决）
 
-Hermes 启动时用 `Path(skills_dir).rglob("SKILL.md")` 判断 Profile 是否已安装技能。Python 的
-`rglob` **不会跟随目录符号链接**，因此一个「技能全是相对符号链接」的 Profile 会被判定为空，
-Hermes 随后会把自带技能重新播种进来（`.no-bundled-skills` 标记只能把它限制为少量「essential」技能）。
+旧布局用符号链接共享技能时，Hermes 启动检测（`Path(skills_dir).rglob("SKILL.md")`）不跟随
+目录符号链接，会把 Profile 判定为空并重新播种自带技能；技能文件解析后落在 `<repo>/skills/`
+还会触发 `skill file is outside the trusted skills directory` 警告。
 
-表现：运行过一次 `hermes -p <profile> chat` 后，`profiles/<profile>/skills/` 下会出现真实目录
-（如 `autonomous-ai-agents/`）、`.bundled_manifest`、`.hub/`、`.usage.json`。
-
-同一根因的第二个症状：技能文件经符号链接解析后落在 `<repo>/skills/`，不在 Profile 自己的
-`skills/` 下，因此每次加载技能都会附带一条非阻断警告
-`skill file is outside the trusted skills directory (~/.hermes/skills/)`（`success` 仍为 `true`）。
-
-两者都源自同一件事：**符号链接布局不符合 Hermes 对「技能就位于 `$HERMES_HOME/skills/` 之下」的路径假设**。
-改为真实副本安装（仓库仅作分发源）可同时消除这两个症状。
-
-处理：
+改为真实副本（仓库仅作分发源，运行时 profile 由 `hermes profile install` 落盘）后，
+这两个症状同时消除。若在仓库内运行过 Hermes 留下运行时残留：
 
 ```bash
 ./scripts/clean_profile_runtime.sh          # 清理运行时状态
-python3 scripts/validate_profiles.py        # 校验（会拦截意外混入的真实技能目录）
+python3 scripts/validate_profiles.py        # 校验结构与副本一致性
 ```
 
-`.no-bundled-skills` 标记**必须提交**，否则全新克隆第一次运行时会被播种整套自带技能。
-在决定「仓库是分发源还是运行目录」之前，把 Profile 目录直接符号链接进仓库并在此运行，
-只是开发期的便利做法。
+`.no-bundled-skills` 标记随 distribution 一并安装，安装出的 profile 不会再被播种自带技能。
 
 
 ## 贡献流程
 
 1. 从 `main` 创建分支。
 2. 添加或修改角色配置文件。
-3. 添加新技能时，先将技能目录放入 `skills/`，再从角色配置创建**相对**符号链接。
-4. 运行 `python3 scripts/validate_profiles.py`，确认结构与符号链接全部通过。
+3. 添加新技能时，先将技能目录放入 `skills/` 池，再在 `profile.yaml` 声明依赖，并运行 `python3 scripts/sync_skills.py` 物化副本。
+4. 运行 `python3 scripts/validate_profiles.py`，确认结构、manifest 与副本一致性全部通过。
 5. 创建 PR，并清楚说明角色职责及其所需技能。
 
 ## 验证角色配置
@@ -196,9 +184,9 @@ python3 scripts/validate_profiles.py        # 校验（会拦截意外混入的�
 - [ ] `profile.yaml` 存在、YAML 有效且列出必需技能
 - [ ] `README.md` 存在，并包含安装、配置和技能参考
 - [ ] `AGENTS.md` 存在，指回 `SOUL.md` 作为权威协议来源
-- [ ] `.env.example` 存在（如该角色需要凭据）
-- [ ] `skills/` 中的所有符号链接都能解析到共享池中的真实文件
-- [ ] 符号链接为相对路径，且 Git 模式为 `120000`
+- [ ] `distribution.yaml` 的 `env_requires` 已声明所需凭据（安装器据此生成 `.env.EXAMPLE`）
+- [ ] `skills/` 下为真实文件副本，且已运行 `sync_skills.py` 与池同步
+- [ ] `distribution.yaml` 存在，`name` 与目录名一致
 - [ ] `python3 scripts/validate_profiles.py` 通过
 - [ ] `hermes -p <name> skills list` 的启用技能数与 `profile.yaml` 一致
 

@@ -48,13 +48,16 @@ hermes-profiles/
 │
 │   工程执行：backend/frontend/qa/debugger 在 Linux 本地 worktree 中
 │   使用 Hermes 自带 codex 技能调用 codex exec
-├── scripts/validate_profiles.py        ← 结构与符号链接校验
+├── scripts/sync_skills.py               ← 按 profile.yaml 依赖物化技能副本
+├── scripts/validate_profiles.py        ← 结构 / manifest / 副本一致性校验
+├── scripts/publish.sh                   ← 发布单角色到独立 distribution 仓库
+├── scripts/install-all.sh               ← 一键安装 / 更新全部 8 个角色
 ├── .gitignore                          ← 排除凭据与运行时状态
 ├── AGENTS.md / CONTRIBUTING.md
 └── README.md
 ```
 
-角色配置通过符号链接指向共享的 `skills/` 目录，因此每个技能只需保留一份即可供所有角色使用。Git 以模式 `120000` 跟踪这些符号链接，不会复制内容。
+仓库根 `skills/` 是技能的**单一来源**；各角色 `skills/` 下的副本由 `scripts/sync_skills.py` 按 `profile.yaml` 的依赖声明从共享池物化为**真实文件**。不再使用符号链接：`hermes profile install` 会硬性拒绝含 symlink 的 payload，且 Windows 克隆（`core.symlinks=false`）会把 symlink 退化为文本文件。修改共享池后必须运行 `python3 scripts/sync_skills.py` 重新物化并提交。
 
 每个角色配置包含：
 
@@ -62,31 +65,40 @@ hermes-profiles/
 |---|---|
 | `SOUL.md` | **权威运行协议**：第一原则、职责边界、触发模式、加载顺序、输出契约 |
 | `config.yaml` | 模型、provider 与工具集（orchestrator 额外启用 `kanban`） |
-| `profile.yaml` | 元数据与技能依赖声明 |
+| `profile.yaml` | 元数据与技能依赖声明（sync_skills 据此物化副本） |
+| `distribution.yaml` | Hermes distribution manifest：name（与目录名一致）、version、env_requires |
 | `README.md` | 面向人的使用指南 |
 | `AGENTS.md` | 指向 `SOUL.md` 的索引 + 上下游接口 |
-| `.env.example` | 需要的凭据清单（复制为 `.env` 并填入） |
-| `skills/` | 指向仓库根 `skills/` 的相对符号链接 |
+| `skills/` | 从仓库根共享技能池物化的真实副本 |
+| `plugins/` | （仅 orchestrator）rd-approval 插件副本 |
 
 ## 使用角色配置
 
+每个角色发布为独立的 distribution 仓库（由 `scripts/publish.sh` 从本仓库生成），用 Hermes 原生命令安装：
+
 ```bash
-# 克隆仓库
-git clone https://github.com/lovelybowen/hermes-profiles.git ~/hermes-profiles
+# 安装单个角色
+hermes profile install github.com/lovelybowen/orchestrator-agent --alias
 
-# 将角色配置链接到 ~/.hermes/profiles/（8 个角色，按需链接）
-ln -s ~/hermes-profiles/profiles/orchestrator ~/.hermes/profiles/
+# 或一键安装全部 8 个角色（见 scripts/install-all.sh）
+curl -fsSL https://raw.githubusercontent.com/lovelybowen/hermes-profiles/master/scripts/install-all.sh | bash
 
-# 准备凭据（.env 已被 .gitignore 排除，不会进入版本库）
-cp ~/hermes-profiles/profiles/orchestrator/.env.example \
-   ~/hermes-profiles/profiles/orchestrator/.env
-# 编辑 .env，填入模型 API key
+# 准备凭据（安装器已生成 .env.EXAMPLE）
+cp ~/.hermes/profiles/orchestrator/.env.EXAMPLE ~/.hermes/profiles/orchestrator/.env
+# 编辑 .env，填入 DEEPSEEK_API_KEY
 
 # 启动
 hermes --profile orchestrator
+
+# 跟进新版本（memories / sessions / 本地 config.yaml 不受影响）
+hermes profile update orchestrator
 ```
 
-角色的运行协议以 `SOUL.md` 为准；`config.yaml` 里的 `toolsets` 决定工具集，`profile.yaml` 里的 `skills` 是依赖声明（技能通过 `skills/` 符号链接实际生效）。
+> **重要**：8 个角色必须使用 manifest 中的原始名字安装（不要用 `--name` 改名），否则 orchestrator 的 Kanban 按名路由会断链。
+>
+> 开发期可从本仓库本地直装测试：`hermes profile install ~/hermes-profiles/profiles/orchestrator --name orch-dev`（测试专用名，避免占用正式 profile 名）。
+
+角色的运行协议以 `SOUL.md` 为准；`config.yaml` 里的 `toolsets` 决定工具集，`profile.yaml` 里的 `skills` 是依赖声明（副本由 `sync_skills.py` 物化，随 distribution 一并安装）。
 
 ## 入口
 
@@ -150,7 +162,7 @@ hermes --profile orchestrator
 - 服务于 R&D 生命周期，并具有独立的上下文、方法论或质量边界
 - `SOUL.md` 说明第一原则、职责边界与输出契约（运行协议的权威来源）
 - `config.yaml` 提供可运行的模型与工具集配置，且不含任何密钥
-- 明确列出技能依赖，并通过相对符号链接实际生效
+- 明确列出技能依赖，并运行 `python3 scripts/sync_skills.py` 物化副本后提交
 - 采用 Hermes 原生模式（产物金字塔输出、基于技能加载方法论）
 - 不依赖 Agent 专用基础设施（如 council、cashew），必须能在原生 Hermes 安装中工作
 

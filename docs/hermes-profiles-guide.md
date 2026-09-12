@@ -52,7 +52,7 @@ hermes-profiles/
 │   ├── qa-methodology/
 │   ├── research-methodology/
 │   └── ...
-├── profiles/                       # 角色配置，技能通过相对符号链接引用
+├── profiles/                       # 角色配置，技能为物化真实副本（可独立安装）
 │   ├── orchestrator/
 │   ├── researcher/
 │   ├── technical-architect/
@@ -74,7 +74,7 @@ hermes-profiles/
 | `profile.yaml` | 元数据和必需/推荐技能声明 |
 | `README.md` | 面向人的安装和使用说明 |
 | `AGENTS.md` | 指向 `SOUL.md` 的索引及上下游接口 |
-| `skills/` | 指向根级共享技能池的相对符号链接 |
+| `skills/` | 从根级共享技能池物化的真实文件副本（sync_skills.py 生成） |
 
 ### 角色职责
 
@@ -195,39 +195,32 @@ flowchart LR
 ### 5.1 Linux/macOS 示例
 
 ```bash
-# 1. 获取分发源
-git clone https://github.com/lovelybowen/hermes-profiles.git ~/hermes-profiles
+# 1. 安装角色（每个角色是独立的 distribution 仓库）
+hermes profile install github.com/lovelybowen/orchestrator-agent --alias
 
-# 2. 选择一个 Profile；研发编排通常从 orchestrator 开始
-mkdir -p "${HERMES_HOME:-$HOME/.hermes}/profiles"
-ln -s ~/hermes-profiles/profiles/orchestrator \
-  "${HERMES_HOME:-$HOME/.hermes}/profiles/orchestrator"
-
-# 3. 配置模型凭据（真实 .env 不会进入 Git）
-cp ~/hermes-profiles/profiles/orchestrator/.env.example \
-  ~/hermes-profiles/profiles/orchestrator/.env
+# 2. 配置模型凭据（安装器已生成 .env.EXAMPLE；真实 .env 不会进入 Git）
+cp ~/.hermes/profiles/orchestrator/.env.EXAMPLE ~/.hermes/profiles/orchestrator/.env
 # 编辑 .env，填写 DEEPSEEK_API_KEY
 
-# 4. 在仓库根目录校验结构和技能链接
-cd ~/hermes-profiles
-python3 scripts/validate_profiles.py
-
-# 5. 检查 Hermes 实际加载的技能
+# 3. 检查 Hermes 实际加载的技能
 hermes -p orchestrator skills list
 
-# 6. 启动
+# 4. 启动
 hermes --profile orchestrator
+
+# 5. 跟进新版本（memories / sessions / 本地 config.yaml 保留）
+hermes profile update orchestrator
 ```
 
 不同 Hermes 版本可能使用 `hermes -p <name>` 或 `hermes --profile <name>`；以本地 CLI 的帮助信息为准。
 
 ### 5.2 可选启用审批插件
 
-`plugins/rd-approval` 不是核心编排依赖。若部署侧启用 Hermes 插件目录，可将其链接到活动的 `$HERMES_HOME/plugins`：
+`rd-approval` 不是核心编排依赖，已随 orchestrator 的 distribution 一并安装到 `~/.hermes/profiles/orchestrator/plugins/rd-approval`。若部署侧启用 Hermes 插件目录，可将其复制到活动的 `$HERMES_HOME/plugins`：
 
 ```bash
 mkdir -p "${HERMES_HOME:-$HOME/.hermes}/plugins"
-ln -s ~/hermes-profiles/plugins/rd-approval \
+cp -r ~/.hermes/profiles/orchestrator/plugins/rd-approval \
   "${HERMES_HOME:-$HOME/.hermes}/plugins/rd-approval"
 ```
 
@@ -238,10 +231,10 @@ ln -s ~/hermes-profiles/plugins/rd-approval \
 > **当前实现**
 
 - Profile 依赖 Hermes 对 `SOUL.md`、`config.yaml`、`profile.yaml` 和 `skills/` 的加载约定。
-- Profile 的技能目录是指向仓库根 `skills/` 的相对符号链接，Git 中应保持 `120000` 模式。
-- 每个 Profile 的 `.no-bundled-skills` 应保留，避免 Hermes 首次运行时播种整套自带技能。
-- Hermes 使用 `rglob("SKILL.md")` 判断技能安装状态，而 Python `rglob` 不跟随目录符号链接；这可能导致误判并写入运行时目录。
-- 出现真实技能目录、`.hub` 或其他运行时状态时，先运行 `scripts/clean_profile_runtime.sh`，再运行校验脚本。
+- 每个角色发布为独立 distribution 仓库（`scripts/publish.sh` 从本 monorepo 生成）；仓库根 `skills/` 是共享池的单一来源，各角色 `skills/` 下为物化真实副本。
+- 禁止符号链接：`hermes profile install` 硬性拒绝 symlink payload，Windows 克隆（`core.symlinks=false`）会把 symlink 退化为文本文件。
+- 每个 Profile 的 `.no-bundled-skills` 随 distribution 安装，避免 Hermes 首次运行时播种整套自带技能。
+- 修改共享池后运行 `python3 scripts/sync_skills.py` 重新物化；出现 `.hub` 等运行时状态时，先运行 `scripts/clean_profile_runtime.sh`，再运行校验脚本。
 
 ## 6. 如何带到其他 Agent 环境
 
@@ -275,7 +268,7 @@ ln -s ~/hermes-profiles/plugins/rd-approval \
 
 ### 短期：降低安装和运行摩擦
 
-- 提供跨平台安装脚本，自动创建 Profile、插件和技能链接。
+- ~~提供跨平台安装脚本~~ 已完成：`hermes profile install` + `scripts/install-all.sh`。
 - 增加 Windows/macOS/Linux 的链接、权限和路径检查。
 - 为 Profile 和共享技能增加版本登记与兼容矩阵。
 - 启动前检查技能数量、`.no-bundled-skills` 和运行时污染。
@@ -297,7 +290,7 @@ ln -s ~/hermes-profiles/plugins/rd-approval \
 ## 8. 验证清单
 
 ```bash
-# 配置、YAML、技能前置关系和相对符号链接
+# 配置、YAML、manifest、技能副本一致性
 python3 scripts/validate_profiles.py
 
 # 检查 Markdown 和补丁中的空白错误

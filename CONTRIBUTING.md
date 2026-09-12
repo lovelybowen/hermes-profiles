@@ -10,30 +10,30 @@
 |---|---|
 | `SOUL.md` | **权威运行协议**：第一原则、职责边界、触发模式、加载顺序、输出契约 |
 | `config.yaml` | 模型、provider 与工具集；**不得包含任何密钥** |
-| `profile.yaml` | 元数据：描述、必需技能、推荐技能 |
+| `profile.yaml` | 元数据：描述、必需技能、推荐技能（sync_skills.py 据此物化副本） |
+| `distribution.yaml` | distribution manifest：name（=目录名）、version、env_requires |
 | `README.md` | 使用指南：安装、配置、技能参考 |
 | `AGENTS.md` | 指向 `SOUL.md` 的索引 + 该角色的上下游接口 |
-| `.env.example` | 所需凭据清单（真实 `.env` 被 gitignore） |
-| `skills/` | 指向共享池的相对符号链接（非文件内容） |
+| `skills/` | 从共享池物化的真实文件副本（脚本生成，须提交） |
 
 **为什么运行协议只在 `SOUL.md`：** Hermes 把 `$HERMES_HOME/SOUL.md` 注入每个会话，而 `AGENTS.md` 只有工作目录恰为该角色目录时才加载。触发模式与交接协议必须每会话生效，因此放 `SOUL.md`；`AGENTS.md` 只做索引，避免两份协议漂移。
 
-## 技能共享
+## 技能共享（物化副本）
 
-角色配置通过根级 `skills/` 目录共享技能。每个角色配置的 `skills/` 目录都包含指回共享池的**相对符号链接**：
+角色配置通过根级 `skills/` 目录共享技能（单一来源）。各角色 `skills/` 下的副本由脚本物化为**真实文件**：
 
 ```
-skills/                          ← 实际技能文件（单份）
+skills/                          ← 实际技能文件（单份，权威来源）
 └── some-skill/
     ├── SKILL.md
     └── references/
-profiles/some-profile/skills/    ← 符号链接
-    └── some-skill -> ../../../skills/some-skill
+profiles/some-profile/skills/    ← 真实副本（脚本生成）
+    └── some-skill/SKILL.md ...
 ```
 
-- **不要**将技能文件复制到角色配置目录中，请使用符号链接。
-- **不要**使用绝对符号链接路径。应从角色配置的 `skills/` 目录使用相对路径指回仓库根目录的 `skills/`。
-- 如果角色需要共享池中不存在的技能，请先将该技能添加到 `skills/`，再从角色配置创建符号链接。
+- **禁止符号链接**：`hermes profile install` 硬性拒绝 symlink payload；Windows 克隆会把 symlink 退化为文本文件。
+- 修改共享池的技能后，运行 `python3 scripts/sync_skills.py` 重新物化并连同副本一起提交。
+- 如果角色需要共享池中不存在的技能，请先将该技能添加到 `skills/`，再在 `profile.yaml` 的 `skills.required` 中声明，然后跑 sync_skills.py。
 
 ## 技能设计指南
 
@@ -57,23 +57,13 @@ profiles/some-profile/skills/    ← 符号链接
 
 ## 运行时状态
 
-Profile 目录通过符号链接直接位于仓库内，Hermes 运行时会向其中写入运行时状态
-（`state.db`、`logs/`、`skills/.hub/`、`skills/.bundled_manifest` 等，见 `.gitignore`）。
+本仓库只作**分发源**，运行时 profile 由 `hermes profile install` 落盘到 `~/.hermes/profiles/`。
+若曾在仓库内的 profile 目录中运行过 Hermes（旧布局），残留的运行时状态
+（`state.db`、`logs/`、`skills/.hub/`、`skills/.bundled_manifest` 等）已被 `.gitignore` 排除，
+提交前可运行 `./scripts/clean_profile_runtime.sh` 清理。
 
-注意一处上游交互：Hermes 用 `rglob("SKILL.md")` 判断 Profile 是否已安装技能，而 `rglob`
-不跟随目录符号链接，因此符号链接技能会被误判为「未安装」，从而触发自带技能重新播种。
-提交前请运行：
-
-```bash
-./scripts/clean_profile_runtime.sh
-python3 scripts/validate_profiles.py
-```
-
-`profiles/<name>/.no-bundled-skills` 标记必须保留在版本库中，否则全新克隆第一次运行会被播种整套自带技能。
-
-同一根因还会让每次技能加载附带一条非阻断警告
-`skill file is outside the trusted skills directory (~/.hermes/skills/)`——符号链接解析后的路径落在
-`<repo>/skills/`，不在 Profile 自己的 `skills/` 下。
+`profiles/<name>/.no-bundled-skills` 标记必须保留在版本库中并随 distribution 安装，
+否则全新安装的 profile 第一次运行会被播种整套自带技能。
 
 ## 开始贡献
 
@@ -82,14 +72,15 @@ python3 scripts/validate_profiles.py
 gh repo fork lovelybowen/hermes-profiles --clone
 
 # 创建角色配置
-mkdir -p profiles/your-profile/skills
+mkdir -p profiles/your-profile
 cp -r profiles/technical-architect/SOUL.md profiles/your-profile/
 # ... 编辑 SOUL.md、profile.yaml、README.md、AGENTS.md ...
 
-# 链接共享技能（相对路径，Git 以 120000 模式跟踪）
-ln -s ../../../skills/artifact-pyramids profiles/your-profile/skills/
+# 声明技能依赖后物化副本（真实文件，随 distribution 分发）
+#   编辑 profiles/your-profile/profile.yaml → skills.required
+python3 scripts/sync_skills.py
 
-# 校验结构与符号链接（必须通过）
+# 校验结构、manifest 与副本一致性（必须通过）
 python3 scripts/validate_profiles.py
 
 # 确认 Hermes 实际加载到的技能数与 profile.yaml 一致

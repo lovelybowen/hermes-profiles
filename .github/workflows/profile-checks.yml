@@ -4,6 +4,8 @@ on:
     paths:
       - 'profiles/**'
       - 'skills/**'
+      - 'scripts/**'
+      - '.github/workflows/profile-checks.yml'
 
 jobs:
   validate:
@@ -14,26 +16,27 @@ jobs:
       - name: 安装依赖
         run: pip install pyyaml
 
-      - name: 验证角色元数据和技能连接
+      - name: 校验角色元数据 / manifest / 技能副本一致性
         run: python3 scripts/validate_profiles.py
 
       - name: 检查 README.md 是否反映当前角色和技能
         run: |
           errors=0
-          actual_profiles=$(ls profiles/ | wc -l | tr -d ' ')
-          readme_profiles=$(grep -cE "├── [a-z].*/.*←|└── [a-z].*/.*←" README.md)
-          if [ "$readme_profiles" -ne "$actual_profiles" ]; then
-            echo "README.md 列出了 $readme_profiles 个角色，但实际存在 $actual_profiles 个角色"
-            errors=$((errors + 1))
-          fi
-          actual_skills=$(ls skills/ | wc -l | tr -d ' ')
-          readme_skills=$(grep -cE "^│   [├└]── [a-z]" README.md)
-          if [ "$readme_skills" -ne "$actual_skills" ]; then
-            echo "README.md 的技能部分可能已过期（列出 $readme_skills 个，实际存在 $actual_skills 个）"
-            errors=$((errors + 1))
-          fi
+          for p in profiles/*/; do
+            name=$(basename "$p")
+            if ! grep -q "$name" README.md; then
+              echo "README.md 未提及角色 $name"
+              errors=$((errors + 1))
+            fi
+          done
+          for sk in $(find skills -name SKILL.md | xargs -n1 dirname | xargs -n1 basename | sort -u); do
+            if ! grep -q "$sk" README.md; then
+              echo "README.md 未提及技能 $sk"
+              errors=$((errors + 1))
+            fi
+          done
           if [ "$errors" -gt 0 ]; then
             echo "请更新 README.md，使其反映当前角色和技能"
             exit 1
           fi
-          echo "README.md 与 $(ls profiles/ | wc -l | tr -d ' ') 个角色和 $(ls skills/ | wc -l | tr -d ' ') 个技能目录一致"
+          echo "README.md 已覆盖全部 $(ls profiles/ | wc -l | tr -d ' ') 个角色和 $(find skills -name SKILL.md | xargs -n1 dirname | xargs -n1 basename | sort -u | wc -l) 个技能"
