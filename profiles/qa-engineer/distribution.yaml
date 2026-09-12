@@ -1,0 +1,10 @@
+name: qa-engineer
+version: 1.0.0
+description: QA 工程师 - 负责测试策略、测试自动化、回归测试和质量门，设计让团队能够持续放心交付的测试方法。
+hermes_requires: '>=0.12.0'
+author: lovelybowen
+license: MIT
+env_requires:
+- name: DEEPSEEK_API_KEY
+  description: DeepSeek API key（模型访问，见 config.yaml model.provider）
+  required: true

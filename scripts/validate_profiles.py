@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""Validate Hermes profile metadata and skill wiring.
+"""Validate Hermes profile metadata, manifests, and skill wiring.
 
-This intentionally checks semantic drift that plain `yaml.safe_load` misses:
+Checks semantic drift that plain `yaml.safe_load` misses:
 - duplicate YAML keys
-- profile.yaml structure
-- declared skills that do not exist in the shared skill pool
-- declared skills that are not reachable through the profile's skills/ symlinks
-- invalid shared-skill frontmatter
-- broken or absolute symlinks
+- profile.yaml structure and declared skills present in the shared skill pool
+- distribution.yaml: present, parseable, name matches the profile dir
+- NO symlinks anywhere under profiles/ (native or Git mode-120000 text blobs)
+- materialized skill copies match the shared pool exactly (delegates to sync_skills)
+
+Why no symlinks: `hermes profile install` hard-rejects symlinked payloads, and
+Windows checkouts with core.symlinks=false degrade links to text files. Skill
+sharing is done by committing real copies, materialized via sync_skills.py.
 """
 from __future__ import annotations
 
@@ -19,6 +22,9 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import sync_skills  # noqa: E402
 
 
 class UniqueKeyLoader(yaml.SafeLoader):
@@ -94,75 +100,6 @@ def tracked_symlinks(root: Path) -> set[str]:
     return links
 
 
-def relative_key(path: Path, root: Path) -> str:
-    return path.relative_to(root).as_posix()
-
-
-def link_target(path: Path, root: Path, git_symlinks: set[str]) -> str | None:
-    """Read a native symlink or Git's text checkout used when core.symlinks=false."""
-    if path.is_symlink():
-        return os.readlink(path)
-    if relative_key(path, root) in git_symlinks and path.is_file():
-        return path.read_text(encoding="utf-8").strip()
-    return None
-
-
-# Runtime state Hermes writes inside <profile>/skills/ (e.g. `hermes skills list`
-# creates `.hub/`). These are gitignored and must never be treated as skill wiring.
-RUNTIME_SKILL_DIRS = frozenset({".hub", ".org", "__pycache__", ".cache", ".tmp"})
-
-
-def profile_skill_entries(skill_dir: Path, root: Path, git_symlinks: set[str]) -> list[Path]:
-    """Find profile skill links, including links nested under a real category directory.
-
-    Hidden/runtime directories are skipped: they hold Hermes state, not skill links,
-    and are excluded by .gitignore anyway.
-    """
-    entries: list[Path] = []
-    for entry in sorted(skill_dir.iterdir()):
-        if entry.name in RUNTIME_SKILL_DIRS or (entry.name.startswith(".") and not entry.is_symlink()):
-            continue
-        if link_target(entry, root, git_symlinks) is not None:
-            entries.append(entry)
-        elif entry.is_dir():
-            entries.extend(profile_skill_entries(entry, root, git_symlinks))
-        else:
-            entries.append(entry)
-    return entries
-
-
-def skill_names_under(path: Path) -> set[str]:
-    """Return skill names reachable under a skill root.
-
-    pathlib's rglob does not reliably traverse symlinked directories on every
-    platform, so profiles are handled by resolving each skill entry first.
-    Category directories such as `architecture/` expose their nested SKILL.md
-    names but are not themselves counted as skills.
-    """
-    names: set[str] = set()
-    if not path.exists():
-        return names
-
-    roots: list[Path]
-    if path.name == "skills":
-        roots = [entry.resolve() for entry in path.iterdir() if entry.is_dir()]
-    else:
-        roots = [path.resolve()]
-
-    for root in roots:
-        if not root.exists() or not root.is_dir():
-            continue
-        for skill_md in root.rglob("SKILL.md"):
-            try:
-                fm = extract_frontmatter(skill_md)
-            except ValueError:
-                # Let shared-skill validation report the detailed error.
-                names.add(skill_md.parent.name)
-                continue
-            names.add(str(fm.get("name") or skill_md.parent.name))
-    return names
-
-
 def declared_skills(profile_yaml: dict[str, Any], profile_path: Path) -> set[str]:
     skills = profile_yaml.get("skills")
     if not isinstance(skills, dict):
@@ -176,21 +113,6 @@ def declared_skills(profile_yaml: dict[str, Any], profile_path: Path) -> set[str
             raise ValueError(f"{profile_path}: `skills.{bucket}` must be a list of strings")
         declared.update(values)
     return declared
-
-
-def reachable_profile_skills(profile_dir: Path, root: Path, git_symlinks: set[str]) -> set[str]:
-    skill_dir = profile_dir / "skills"
-    if not skill_dir.exists():
-        return set()
-    names: set[str] = set()
-    for entry in profile_skill_entries(skill_dir, root, git_symlinks):
-        target = link_target(entry, root, git_symlinks)
-        if target is None or os.path.isabs(target):
-            continue
-        resolved = (entry.parent / target).resolve()
-        if resolved.is_dir():
-            names.update(skill_names_under(resolved))
-    return names
 
 
 def main() -> int:
@@ -208,8 +130,14 @@ def main() -> int:
     except ValueError as exc:
         print(f"Profile validation failed:\n- {exc}", file=sys.stderr)
         return 1
+    if git_symlinks:
+        for rel in sorted(git_symlinks):
+            errors.append(
+                f"{rel}: Git-tracked symlink — payloads must be real files "
+                "(run `python3 scripts/sync_skills.py` and commit the copies)"
+            )
 
-    shared_skills = skill_names_under(skills_dir)
+    shared_skill_names = {p.parent.name for p in skills_dir.rglob("SKILL.md")}
 
     # Shared skill frontmatter must be valid Hermes-style skill metadata.
     for skill_md in sorted(skills_dir.rglob("SKILL.md")):
@@ -226,61 +154,60 @@ def main() -> int:
         except ValueError as exc:
             errors.append(str(exc).replace(str(root) + os.sep, ""))
 
-    for profile_dir in sorted(p for p in profiles_dir.iterdir() if p.is_dir()):
+    profile_dirs = sorted(p for p in profiles_dir.iterdir() if p.is_dir())
+    for profile_dir in profile_dirs:
         rel = profile_dir.relative_to(root)
-        for required_file in ("SOUL.md", "profile.yaml", "README.md", "AGENTS.md"):
+        for required_file in ("SOUL.md", "profile.yaml", "README.md", "AGENTS.md", "distribution.yaml"):
             if not (profile_dir / required_file).is_file():
                 errors.append(f"{rel}: missing {required_file}")
 
+        # distribution.yaml: parseable, name == dir, env entries well-formed.
+        manifest_path = profile_dir / "distribution.yaml"
+        if manifest_path.is_file():
+            try:
+                manifest = load_yaml(manifest_path)
+                mname = str(manifest.get("name") or "").strip()
+                if not mname:
+                    errors.append(f"{manifest_path.relative_to(root)}: missing 'name'")
+                elif mname != profile_dir.name:
+                    errors.append(
+                        f"{manifest_path.relative_to(root)}: name {mname!r} != directory "
+                        f"{profile_dir.name!r} (kanban routing relies on exact profile names)"
+                    )
+                env = manifest.get("env_requires") or []
+                if not isinstance(env, list):
+                    errors.append(f"{manifest_path.relative_to(root)}: env_requires must be a list")
+                else:
+                    for entry in env:
+                        if not isinstance(entry, dict) or not str(entry.get("name") or "").strip():
+                            errors.append(f"{manifest_path.relative_to(root)}: env_requires entry missing 'name'")
+            except ValueError as exc:
+                errors.append(str(exc).replace(str(root) + os.sep, ""))
+
+        # profile.yaml structure + declared skills exist in the shared pool.
         profile_yaml_path = profile_dir / "profile.yaml"
-        if not profile_yaml_path.exists():
-            continue
-        try:
-            data = load_yaml(profile_yaml_path)
-            declared = declared_skills(data, profile_yaml_path.relative_to(root))
-        except ValueError as exc:
-            errors.append(str(exc).replace(str(root) + os.sep, ""))
-            continue
+        if profile_yaml_path.exists():
+            try:
+                data = load_yaml(profile_yaml_path)
+                declared = declared_skills(data, profile_yaml_path.relative_to(root))
+            except ValueError as exc:
+                errors.append(str(exc).replace(str(root) + os.sep, ""))
+            else:
+                missing_from_repo = sorted(declared - shared_skill_names)
+                if missing_from_repo:
+                    errors.append(
+                        f"{profile_yaml_path.relative_to(root)}: declares skills not present in shared pool: "
+                        + ", ".join(missing_from_repo)
+                    )
 
-        missing_from_repo = sorted(declared - shared_skills)
-        if missing_from_repo:
-            errors.append(
-                f"{profile_yaml_path.relative_to(root)}: declares skills not present in shared pool: "
-                + ", ".join(missing_from_repo)
-            )
+        # Native symlinks (not yet committed, or committed from a symlink-capable host).
+        for p in profile_dir.rglob("*"):
+            if p.is_symlink():
+                errors.append(f"{p.relative_to(root)}: symlink — payloads must be real files")
 
-        reachable = reachable_profile_skills(profile_dir, root, git_symlinks)
-        missing_from_profile = sorted(declared - reachable)
-        if missing_from_profile:
-            errors.append(
-                f"{profile_yaml_path.relative_to(root)}: declares skills not reachable from profile skills/: "
-                + ", ".join(missing_from_profile)
-            )
-
-    for profile_dir in sorted(p for p in profiles_dir.iterdir() if p.is_dir()):
-        skill_dir = profile_dir / "skills"
-        if not skill_dir.exists():
-            continue
-        # Invariant: a profile never ships skill content, only relative symlinks into
-        # the shared pool. Real directories/files here mean something (bundled-skill
-        # seeding, or a hand-copied skill) leaked runtime state into the repository.
-        for entry in sorted(skill_dir.iterdir()):
-            if entry.is_symlink() or entry.name in RUNTIME_SKILL_DIRS:
-                continue
-            errors.append(
-                f"{entry.relative_to(root)}: unexpected real path inside profile skills/ "
-                "(profiles must reference the shared pool via relative symlinks only — "
-                "run `hermes -p <profile> skills opt-out` to stop bundled-skill seeding)"
-            )
-        for link in profile_skill_entries(skill_dir, root, git_symlinks):
-            target = link_target(link, root, git_symlinks)
-            if target is None:
-                errors.append(f"{link.relative_to(root)}: expected a Git symbolic link")
-                continue
-            if os.path.isabs(target):
-                errors.append(f"{link.relative_to(root)}: symlink target is absolute: {target}")
-            if not (link.parent / target).exists():
-                errors.append(f"{link.relative_to(root)}: broken symlink -> {target}")
+    # Materialized copies match the pool (delegates the deep tree comparison).
+    for profile_dir in profile_dirs:
+        errors += sync_skills.sync_profile(profile_dir, check_only=True)
 
     if errors:
         print("Profile validation failed:", file=sys.stderr)
@@ -289,8 +216,8 @@ def main() -> int:
         return 1
 
     print(
-        f"Profile validation passed: {len(list(profiles_dir.iterdir()))} profiles, "
-        f"{len(shared_skills)} shared skills."
+        f"Profile validation passed: {len(profile_dirs)} profiles, "
+        f"{len(shared_skill_names)} shared skills."
     )
     return 0
 

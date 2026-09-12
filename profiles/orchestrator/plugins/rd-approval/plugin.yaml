@@ -1,0 +1,6 @@
+name: rd-approval
+version: 0.1.0
+description: "Text approval commands for R&D Kanban decisions."
+author: "User, Hermes Agent"
+commands:
+  - decision

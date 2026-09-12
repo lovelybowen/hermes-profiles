@@ -55,9 +55,10 @@ profiles/*/skills/.usage.json
 profiles/*/skills/.usage.json.lock
 profiles/*/skills/__pycache__/
 profiles/*/skills/.cache/
-# Hermes bundled-skill seeding: ignore any real directory under skills/
-# (symlinks are files, so this trailing-slash rule leaves them tracked)
-profiles/*/skills/*/
+# ---- Hermes bundled-skill seeding ----
+# Materialized skill copies are REAL files and must be committed (the
+# distribution installer rejects symlinks); only runtime state below is ignored.
+profiles/*/skills/.hub/
 profiles/*/.tirith-install-failed
 
 # ---- Caches & generated artifacts ----
