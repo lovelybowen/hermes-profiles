@@ -88,7 +88,7 @@ hermes --profile orchestrator
 
 ## 入口
 
-**`default` 是外部 ingress，`orchestrator` 是研发准入与编排入口。** 普通问答可由 default 直接回答；研发请求统一进入 Kanban `triage` intake，由 default 保留原始请求、项目、验收条件和来源标识，并固定交给 orchestrator。default 不直接改代码、不调用工程 Profile。
+**`default` 是外部 ingress，`orchestrator` 是研发准入与编排入口。** 普通问答、维护、修复、配置、文档、脚本、工具类操作由 default 直接处理；**只有「对某个项目的基线需求开发」才进入 Kanban `triage` intake**，由 default 保留原始请求、项目、验收条件和来源标识，并固定交给 orchestrator 走 R&D 流程。default 不直接改业务代码、不调用工程 Profile。
 
 ```
 你（需求 / 变更请求）
@@ -110,7 +110,7 @@ Intent Owner / Delivery Owner / Risk Approver   ← push / 合并 / 部署 / 风
 
 其余 7 个角色是**按需参与者**，由 `orchestrator` 通过 Kanban 任务拉入，不直接面向用户接单。
 
-`default` 可以作为 Feishu/Cron 入口：它只创建 assignee 为 `orchestrator` 的 intake 任务；编排和执行仍由 Kanban Flow 完成。
+`default` 可以作为 Feishu/Cron 入口：只在基线需求开发时创建 assignee 为 `orchestrator` 的 intake 任务，其余场景直接处理；编排和执行仍由 Kanban Flow 完成。
 
 ```bash
 hermes --profile orchestrator
