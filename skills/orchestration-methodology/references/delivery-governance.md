@@ -42,6 +42,7 @@
 - 实现类任务不得直接改动主分支，也不得改动其他任务的工作区。
 - Kanban `scratch` 工作区在任务完成时被删除。产物必须先通过 `kanban_complete(artifacts=[...])` 声明，否则视为未交付。
 - `dir:<绝对路径>` 与 `worktree` 工作区在完成后保留。
+- **对比 / 重复演练开工前先冻结上一轮产物。** 需要跨轮定量对比时，先 `cp -a` 上一轮的产物与门禁证据到持久目录 `/root/kanban-evidence/<prev-task-id>/`——`scratch` 工作区与 `attachments` 会随清理丢失，未冻结则对比只能退化为「引用上一轮卡面记录值」（弱证据，须标注 `source: recorded-card-values`）。指标字段集与取数配方见 `rehearsal-comparison-metrics.md`。
 
 ### 2.2 路由规则（R0–R5）
 
@@ -86,7 +87,7 @@ task/<task-id>-<short-slug>
 - 交接证据必须包含 `commit`（完整 SHA）与 `changed_files`。
 - `reviewer` 只评审这个 SHA，不评审「当前工作区」。
 - 一个实现任务可以多次提交；交接时给出最终 SHA。
-- 交接给 `reviewer` 的证据必须同时携带 `evidence_level`（L0 / L1 / L1+L2 / Full）与 `seb_integrity`（passed / failed / not_required）；缺任一项即视为证据不足，按 §6.2 处理，不得建 reviewer 卡。
+- 交接给 `reviewer` 的证据必须同时携带 `evidence_level`（L0 / L1 / L1+L2 / Full）与 `seb_integrity`；缺任一项即视为证据不足，按 §6.2 处理，不得建 reviewer 卡。`seb_integrity` 是**闭集合令牌**，只有 `passed` / `failed` / `not_required` 三个逐字取值：**生产者交接自产证据时取 `not_required`**（此时尚无复用方执行核验），理由写入 `seb_integrity_note`；`passed` / `failed` 由**复用方**（`reviewer` / `qa-engineer` / 下游 Flow）在完成完整性核验后填写。语义与填权见共享技能 `artifact-pyramids/references/evidence-levels-and-seb.md` §4.1。
 
 ## 4. 质量门顺序
 
@@ -133,9 +134,10 @@ evidence:
   commit: <完整 SHA>
   baseline: <revision / SHA>
   changed_files: [<path + blob_sha + 增删行数>]
-  commands: ["<cmd> -> exit <code>, stdout_sha256:<hash>"]
+  commands: ["<cmd> -> exit <code>, stdout_sha256:<hash> (stdout_normalizer: none|drop-build-timing|drop-timestamps|drop-progress|unstable)"]
   seb: <SEB 路径或内联块>
   seb_integrity: passed | failed | not_required
+  seb_integrity_note: <取该令牌的理由；生产者自产证据填 self-produced (producer == task)>
   sampling: <抽样的最高风险项>
   confidence: full | reduced
   uncovered: [<未覆盖项>]        # confidence: reduced 时必填
@@ -158,6 +160,7 @@ decisions_required: [...]
 - **档位由 intake 一次性下发、下游继承。** `evidence_level`（L0 / L1 / L1+L2 / Full）在 intake 随 T 类 / 风险等级一并判定，写入任务卡与交接消息；`reviewer`、engineer、`qa-engineer` 不得各自重选档位，发现档位不足只能按 6.2 上报升级。
 - **建卡前校验证据包完整性。** 建 reviewer 卡前，被交接物必须携带本节 YAML 中的 `evidence_level`、`commit`、`changed_files`（含 `blob_sha`）、`commands`（含 `exit_code` / `stdout_sha256`）、`seb`、`seb_integrity`。任一必需字段缺失 → 证据不足，按 6.2 处理，**不得**以「先让 reviewer 看看」为由建卡。
 - **完整性核验由 reviewer 执行，orchestrator 不代替。** 核验与抽样的执行属 `reviewer` 的工程技能，本文件不修改其实现；orchestrator 的职责是保证被交接的固定 SHA 与 SEB 一致，且不得把「文档写了规则」表述为「运行时已自动核验」。
+- **`stdout_sha256` 与 `seb_integrity` 的取值口径（orchestrator 建卡前校验项）。** `commands[].stdout_sha256` 一律对**规范化输出**取值，并随命令声明 `stdout_normalizer`（构建类命令用 `drop-build-timing`，见 §6 YAML）；`seb_integrity` 只有 `passed` / `failed` / `not_required` 三个逐字取值，**生产者交接自产证据时填 `not_required`**，理由写入独立的 `seb_integrity_note`——禁止把理由拼进令牌（`"not_required (self-produced)"` 不是合法令牌，会让 grep / 门禁脚本失配）。口径定义见 `artifact-pyramids/references/evidence-levels-and-seb.md` §2.1 / §4.1。
 - **`L0` 例外。** `L0` 档位不生成金字塔、不要求 SEB；仅需变更文件清单加至少一条可复核命令及其 exit code，无改动时给出显式「无改动」声明。
 
 ### 6.2 证据不足时的阻塞与降级
@@ -171,6 +174,8 @@ decisions_required: [...]
 | 实际产物低于 intake 下发的 `evidence_level` | 退回原生产者升档补齐；**不得自行降档**（降档只允许发生在 intake 决策点） |
 | `commit` 不同或 `baseline` 漂移 | 停止复用并触发全量复算，退回受影响分支重跑 |
 | blob / 产物 hash 不一致 | 判定证据被篡改或工作树已变 → 全量复算 + 按 `Risk Approver` 升级风险 |
+| stdout hash 不一致但语义相同（采集约定差异，如空输出的 0 字节 vs 1 字节换行） | **不按上一行处理**：先按 `evidence-levels-and-seb.md` §2.1 以同一 `stdout_normalizer` 复算；复算后一致则记录差异来源后继续，复算后仍不一致才升级为「hash 不一致」 |
+| `seb_integrity` 取值非闭集合（如 `"not_required (self-produced)"`） | 令牌非法：退回生产者改为逐字令牌，理由移入 `seb_integrity_note`，再进入核验 |
 | 预算耗尽（超出档位轮次 / 秒数） | 只允许**部分裁决**：标 `confidence: reduced` 并列出 `uncovered`；不得伪装通过 |
 | 非必需字段缺失（`env`、`schema_version`） | 允许继续，但标 `seb_incomplete: true` 并写入结论 |
 

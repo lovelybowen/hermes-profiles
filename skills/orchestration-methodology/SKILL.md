@@ -49,6 +49,7 @@ G1 若在综合完成后发现阻断级缺陷：在实现卡 `kanban_request_cha
 | `references/requirements-intake.md` | 收到自然语言需求、需要形成可确认的基线 revision，或收到未就绪基线时 |
 | `references/gate-topology.md` | intake 需要判定 T0–T6 与 G0/G1/G2，或需要门禁拓扑（父边）与缺陷回收纪律时 |
 | `references/delivery-governance.md` | 分解实现类工作、分配工作区、设定质量门顺序或判定某个动作是否需要审批时 |
+| `references/rehearsal-comparison-metrics.md` | 需要为重复演练做跨轮定量对比：确定指标字段集、从 Kanban DB / 会话日志 / git 取数，或决定对比前的基线证据冻结方式时 |
 | `artifact-pyramids/references/evidence-levels-and-seb.md`（共享技能池） | 需要判定 / 继承 `evidence_level`（L0 / L1 / L1+L2 / Full）、核验 SEB 完整性，或处理证据不足（阻塞 / 降级）时 |
 
 持久化决策可使用 `scripts/decision_bridge.py`；它只记录单次决策并在批准后解锁绑定任务，不执行 push、merge 或 deploy。
