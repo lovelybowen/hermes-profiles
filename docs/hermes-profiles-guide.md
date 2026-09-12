@@ -62,7 +62,7 @@ hermes-profiles/
 │   ├── debugger/
 │   └── reviewer/
 ├── plugins/rd-approval/             # 可选审批命令插件
-└── scripts/                         # 配置校验与运行时清理
+└── scripts/                         # sync_skills / validate / publish / install-all
 ```
 
 每个 Profile 的关键文件：
@@ -71,7 +71,8 @@ hermes-profiles/
 |---|---|
 | `SOUL.md` | 权威运行协议：第一原则、边界、触发模式、输出契约 |
 | `config.yaml` | 模型、provider 和工具集；`orchestrator` 额外启用 `kanban` |
-| `profile.yaml` | 元数据和必需/推荐技能声明 |
+| `profile.yaml` | 元数据和必需/推荐技能声明（sync_skills.py 据此物化副本） |
+| `distribution.yaml` | distribution manifest：`name`（与目录名一致）、`version`、`env_requires`（安装器据此生成 `.env.EXAMPLE` 并预检） |
 | `README.md` | 面向人的安装和使用说明 |
 | `AGENTS.md` | 指向 `SOUL.md` 的索引及上下游接口 |
 | `skills/` | 从根级共享技能池物化的真实文件副本（sync_skills.py 生成） |
@@ -116,11 +117,14 @@ flowchart TD
 
 ### 门禁和证据由 intake 决定
 
-| 任务范围 | 门禁 | 典型参与者 |
-|---|---|---|
-| T0/T1：答问、讨论、研究 | G0，不创建 reviewer | `orchestrator` |
-| T2、非生产 T3、T4 | G1，QA 必须执行时另加 QA 门；reviewer 轻量异步 | 专家 + QA + 可选 reviewer |
-| T5/T6、影响生产的 T3、信息不足 | G2，同步 reviewer，阻断式质量门 | 专家 + QA + reviewer + Risk Approver |
+| 任务范围 | 门禁 | Reviewer 拓扑 | 典型参与者 |
+|---|---|---|---|
+| T0/T1：答问、讨论、研究 | G0 | 不创建 reviewer | `orchestrator` |
+| T2 | G1 | reviewer 可选轻量检查，不作为下游父卡 | 专家（+ QA 视范围） |
+| 普通 T3 / T4 | G1 + QA | reviewer 轻量；QA 必须执行验证 | 专家 + QA |
+| T5/T6、影响生产的 T3、信息不足或高风险 | G2 | 同步 reviewer + 完整质量门 | 专家 + QA + reviewer + Risk Approver |
+
+G1 交接必须含 `review_status: pending`；发现缺陷时标记综合产物 `superseded` 并回到实现 / QA。
 
 下游不能自行降低门禁或证据档位。若证据不足，应阻断、补证，或明确标记 `confidence: reduced` 与 `uncovered`。
 
@@ -192,10 +196,12 @@ flowchart LR
 
 ## 5. 嵌入 Hermes
 
-### 5.1 Linux/macOS 示例
+### 5.1 安装示例（Linux/macOS/Windows 通用）
+
+安装 8 个角色中任意一个（每个角色是独立的 distribution 仓库；完整清单见根 README 的「使用角色配置」）：
 
 ```bash
-# 1. 安装角色（每个角色是独立的 distribution 仓库）
+# 1. 安装角色
 hermes profile install github.com/lovelybowen/orchestrator-agent --alias
 
 # 2. 配置模型凭据（安装器已生成 .env.EXAMPLE；真实 .env 不会进入 Git）
@@ -212,7 +218,7 @@ hermes --profile orchestrator
 hermes profile update orchestrator
 ```
 
-不同 Hermes 版本可能使用 `hermes -p <name>` 或 `hermes --profile <name>`；以本地 CLI 的帮助信息为准。
+Windows 上 profile 路径为 `%~/.hermes%\profiles\<role>`（即 `D:\hermes\profiles\<role>` 之类，取决于安装位置），`.env` 配置方式相同。不同 Hermes 版本可能使用 `hermes -p <name>` 或 `hermes --profile <name>`；以本地 CLI 的帮助信息为准。
 
 ### 5.2 可选启用审批插件
 
@@ -269,7 +275,7 @@ cp -r ~/.hermes/profiles/orchestrator/plugins/rd-approval \
 ### 短期：降低安装和运行摩擦
 
 - ~~提供跨平台安装脚本~~ 已完成：`hermes profile install` + `scripts/install-all.sh`。
-- 增加 Windows/macOS/Linux 的链接、权限和路径检查。
+- 增加跨平台的路径与权限检查（Windows 路径、行尾、大小写不敏感文件系统）。
 - 为 Profile 和共享技能增加版本登记与兼容矩阵。
 - 启动前检查技能数量、`.no-bundled-skills` 和运行时污染。
 

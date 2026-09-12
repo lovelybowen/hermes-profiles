@@ -36,7 +36,7 @@ hermes-profiles/
 │   ├── review-methodology/
 │   ├── software-architecture-analysis/
 │   └── systematic-debugging/
-├── profiles/
+├── profiles/                           ← 角色配置（每个可独立安装为 distribution）
 │   ├── backend-engineer/               ← API 实现、服务逻辑、数据库访问
 │   ├── debugger/                       ← 根因分析、错误诊断
 │   ├── frontend-engineer/              ← UI 组件、状态管理、API 集成、性能
@@ -45,17 +45,20 @@ hermes-profiles/
 │   ├── researcher/                     ← 深度调查、证据综合
 │   ├── reviewer/                       ← 代码/架构评审、质量门
 │   └── technical-architect/            ← 系统架构：C4 + ADR + arc42
-│
-│   工程执行：backend/frontend/qa/debugger 在 Linux 本地 worktree 中
-│   使用 Hermes 自带 codex 技能调用 codex exec
-├── scripts/sync_skills.py               ← 按 profile.yaml 依赖物化技能副本
-├── scripts/validate_profiles.py        ← 结构 / manifest / 副本一致性校验
-├── scripts/publish.sh                   ← 发布单角色到独立 distribution 仓库
-├── scripts/install-all.sh               ← 一键安装 / 更新全部 8 个角色
+├── plugins/rd-approval/                ← 审批插件（根级为单一来源，物化进 orchestrator）
+├── scripts/
+│   ├── sync_skills.py                  ← 按 profile.yaml 依赖物化技能副本
+│   ├── validate_profiles.py            ← 结构 / manifest / 副本一致性校验
+│   ├── publish.sh                      ← 发布单角色到独立 distribution 仓库
+│   └── install-all.sh                  ← 一键安装 / 更新全部 8 个角色
+├── docs/hermes-profiles-guide.md       ← 对外说明文档（定位、流程、嵌入方式）
+├── .github/workflows/profile-checks.yml ← CI：校验 + README 覆盖检查
 ├── .gitignore                          ← 排除凭据与运行时状态
-├── AGENTS.md / CONTRIBUTING.md
+├── AGENTS.md / CONTRIBUTING.md / IDEA.md
 └── README.md
 ```
+
+工程执行类角色（backend/frontend/qa/debugger）在 Linux 本地 worktree 中使用 Hermes 自带 codex 技能调用 `codex exec` 完成实现。
 
 仓库根 `skills/` 是技能的**单一来源**；各角色 `skills/` 下的副本由 `scripts/sync_skills.py` 按 `profile.yaml` 的依赖声明从共享池物化为**真实文件**。不再使用符号链接：`hermes profile install` 会硬性拒绝含 symlink 的 payload，且 Windows 克隆（`core.symlinks=false`）会把 symlink 退化为文本文件。修改共享池后必须运行 `python3 scripts/sync_skills.py` 重新物化并提交。
 
@@ -74,13 +77,28 @@ hermes-profiles/
 
 ## 使用角色配置
 
-每个角色发布为独立的 distribution 仓库（由 `scripts/publish.sh` 从本仓库生成），用 Hermes 原生命令安装：
+本仓库是**维护源**（monorepo 单一来源）；每个角色发布为独立的 distribution 仓库，安装者用 Hermes 原生命令按需安装：
+
+| 角色 | distribution 仓库 | 职责 |
+|---|---|---|
+| `orchestrator` | `github.com/lovelybowen/orchestrator-agent` | 研发准入、任务分解、专家路由、质量门监控 |
+| `researcher` | `github.com/lovelybowen/researcher-agent` | 深度调查、证据三角验证 |
+| `technical-architect` | `github.com/lovelybowen/technical-architect-agent` | 系统架构：C4 + ADR + arc42 |
+| `backend-engineer` | `github.com/lovelybowen/backend-engineer-agent` | API 实现、服务逻辑、数据库访问 |
+| `frontend-engineer` | `github.com/lovelybowen/frontend-engineer-agent` | UI 组件、状态管理、API 集成、性能 |
+| `qa-engineer` | `github.com/lovelybowen/qa-engineer-agent` | 测试策略、自动化、质量门 |
+| `debugger` | `github.com/lovelybowen/debugger-agent` | 根因分析、错误诊断 |
+| `reviewer` | `github.com/lovelybowen/reviewer-agent` | 代码/架构评审、证据核验 |
 
 ```bash
 # 安装单个角色
 hermes profile install github.com/lovelybowen/orchestrator-agent --alias
 
-# 或一键安装全部 8 个角色（见 scripts/install-all.sh）
+# 或一键安装全部 8 个角色
+# 方式一：克隆本仓库后执行（适用于任何可见性）
+git clone https://github.com/lovelybowen/hermes-profiles.git && cd hermes-profiles
+./scripts/install-all.sh
+# 方式二：直接管道执行（仅当本仓库为 public 时可用）
 curl -fsSL https://raw.githubusercontent.com/lovelybowen/hermes-profiles/master/scripts/install-all.sh | bash
 
 # 准备凭据（安装器已生成 .env.EXAMPLE）
@@ -124,11 +142,7 @@ Intent Owner / Delivery Owner / Risk Approver   ← push / 合并 / 部署 / 风
 
 其余 7 个角色是**按需参与者**，由 `orchestrator` 通过 Kanban 任务拉入，不直接面向用户接单。
 
-`default` 可以作为 Feishu/Cron 入口：只在基线需求开发时创建 assignee 为 `orchestrator` 的 intake 任务，其余场景直接处理；编排和执行仍由 Kanban Flow 完成。
-
-```bash
-hermes --profile orchestrator
-```
+`default` 可以作为 Feishu/Cron 入口：只在基线需求开发时创建 assignee 为 `orchestrator` 的 intake 任务，其余场景直接处理；编排和执行仍由 Kanban Flow 完成。启动编排入口的命令见上文「使用角色配置」。
 
 ## 工作流
 
