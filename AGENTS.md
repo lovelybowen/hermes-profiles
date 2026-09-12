@@ -64,9 +64,9 @@ Hermes 把 `$HERMES_HOME/SOUL.md` 作为身份文档注入每个会话。而 `AG
 
 ### 入口
 
-`default` 是外部 ingress，`orchestrator` 是研发准入与编排入口。普通问答可由 default 直接回答；研发请求统一进入 Kanban `triage` intake，由 default 保留原始请求、项目、验收条件和来源标识，并固定交给 `orchestrator`。其余 7 个角色由 orchestrator 按条件通过 Kanban 任务拉入，不直接面向用户接单。
+`default` 是外部 ingress，`orchestrator` 是研发准入与编排入口。普通问答、维护、修复、配置、文档、脚本、工具类操作由 default 直接处理；**只有「对某个项目的基线需求开发」才进入 Kanban `triage` intake**，由 default 保留原始请求、项目、验收条件和来源标识，并固定交给 `orchestrator` 走 R&D 流程。其余 7 个角色由 orchestrator 按条件通过 Kanban 任务拉入，不直接面向用户接单。
 
-在 Feishu/Cron/Webhook/CLI 多触发源部署中，default 不承担研发编排，而是创建 assignee 为 `orchestrator` 的 intake 任务；`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。
+在 Feishu/Cron/Webhook/CLI 多触发源部署中，default 只在基线需求开发时创建 assignee 为 `orchestrator` 的 intake 任务，其余场景直接处理；`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。
 
 ### 角色之间的协调方式
 

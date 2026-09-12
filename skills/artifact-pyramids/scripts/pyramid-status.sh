@@ -4,10 +4,22 @@
 # Usage:
 #   pyramid-status.sh [--layer 1|2|3] [--json] <project-directory>
 #
-# Scans the directory for:
-#   Layer 1: files matching 01-*, *summary*, *dossier*
-#   Layer 2: files matching 02-*, *analysis*, *market*, *competitive*, *technical*
-#   Layer 3: files matching 03-*, *dossier*, *source*, *transcript*, *raw*, *data*
+# Layer detection is DIRECTORY-based and follows the documented layout:
+#   Layer 1: files under a `01-summary/` directory (short prefix `1-*` also accepted)
+#   Layer 2: files under a `02-analysis/` directory (short prefix `2-*` also accepted)
+#   Layer 3: files under a `03-dossiers/` directory (short prefix `3-*` also accepted)
+#
+# The numeric layer prefix lives on the DIRECTORY name, not on the file basename:
+# `01-summary/findings.md` is layer 1 even though the file itself is named
+# `findings.md`. A file is attributed to the shallowest layer directory on its
+# path, so a file basename that merely looks numbered never creates a layer.
+# Consequently a flat layout with no layer directories reports every layer as
+# missing, and a lone `00-index.md` is scaffolding, not layer content.
+#
+# Hidden (dot-prefixed) files inside the tree are ignored. Only entries *inside*
+# the scanned tree are filtered: a dot-directory in the ancestor path of the
+# project root (e.g. /root/.hermes/kanban/workspaces/<id>/pyramid) must NOT
+# suppress detection, since that is where Flow workspaces live.
 #
 # Checks naming convention, content structure, and cross-references.
 
@@ -57,41 +69,60 @@ if [[ ! -d "$PROJECT_DIR" ]]; then
     exit 1
 fi
 
-# --- Search patterns by layer ---
-L1_PATTERNS=("01-*" "1-*" "*summary*" "*dossier*")
-L2_PATTERNS=("02-*" "2-*" "*analysis*" "*market*" "*competitive*" "*technical*" "*feasibility*")
-L3_PATTERNS=("03-*" "3-*" "*dossier*" "*source*" "*transcript*" "*raw*" "*data*")
+# --- Normalize the project root (layer identity is relative to this root) ---
+ROOT_DIR="${PROJECT_DIR%/}"
+if [[ -z "$ROOT_DIR" ]]; then
+    ROOT_DIR="/"
+fi
 
-count_layer() {
-    local search_dir="$1"
-    shift
-    local files=()
-    for pattern in "$@"; do
-        while IFS= read -r -d '' f; do
-            files+=("$f")
-        done < <(find "$search_dir" -maxdepth 3 -type f -name "$pattern" -not -path '*/\.*' -print0 2>/dev/null || true)
-    done
-    if [[ ${#files[@]} -eq 0 ]]; then
-        echo "0"
+# --- Layer detection (directory-based) ---
+# Map a directory name to the pyramid layer it marks; prints nothing otherwise.
+# The layer prefix is on the directory name: 01-summary/ 02-analysis/ 03-dossiers/
+layer_of_dirname() {
+    case "$1" in
+        01-*|1-*) printf '1' ;;
+        02-*|2-*) printf '2' ;;
+        03-*|3-*) printf '3' ;;
+        *) : ;;
+    esac
+}
+
+# Print the layer (1|2|3) a file belongs to, or nothing when it sits outside
+# every layer directory. The shallowest layer directory on the path wins.
+layer_of_file() {
+    local root="$1" file="$2"
+    local rel="${file#"$root"/}"
+    local dir="${rel%/*}"
+
+    # File sits directly in the project root -> scaffolding, not layer content.
+    if [[ "$dir" == "$rel" ]]; then
         return 0
     fi
-    declare -a unique=()
-    local f rp u
-    for f in "${files[@]}"; do
-        rp=$(realpath "$f" 2>/dev/null || echo "$f")
-        local seen=false
-        for u in "${unique[@]-}"; do
-            if [[ "$u" == "$rp" ]]; then
-                seen=true
-                break
-            fi
-        done
-        if ! $seen; then
-            unique+=("$rp")
+
+    local comp layer
+    while IFS= read -r comp; do
+        layer=$(layer_of_dirname "$comp")
+        if [[ -n "$layer" ]]; then
+            printf '%s' "$layer"
+            return 0
         fi
-    done
-    echo "${#unique[@]}"
+    done < <(printf '%s\n' "$dir" | tr '/' '\n')
+
     return 0
+}
+
+count_layer() {
+    local layer="$1"
+    local root="$2"
+    local count=0
+    local f file_layer
+    while IFS= read -r -d '' f; do
+        file_layer=$(layer_of_file "$root" "$f")
+        if [[ "$file_layer" == "$layer" ]]; then
+            count=$((count + 1))
+        fi
+    done < <(find "$root" -maxdepth 3 -type f -not -name '.*' -print0 2>/dev/null || true)
+    echo "$count"
 }
 
 check_md_quality() {
@@ -142,9 +173,9 @@ check_cross_references() {
 }
 
 # --- Gather stats ---
-L1_COUNT=$(count_layer "$PROJECT_DIR" "${L1_PATTERNS[@]}")
-L2_COUNT=$(count_layer "$PROJECT_DIR" "${L2_PATTERNS[@]}")
-L3_COUNT=$(count_layer "$PROJECT_DIR" "${L3_PATTERNS[@]}")
+L1_COUNT=$(count_layer "1" "$ROOT_DIR")
+L2_COUNT=$(count_layer "2" "$ROOT_DIR")
+L3_COUNT=$(count_layer "3" "$ROOT_DIR")
 
 L1_RESULTS=$(check_md_quality "$PROJECT_DIR" 2>/dev/null || true)
 L1_FINDINGS="${L1_RESULTS%$'\n'*}"

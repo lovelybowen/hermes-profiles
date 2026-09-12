@@ -5,8 +5,18 @@
 ## 1. 一次性分类纪律（intake 决策一次）
 
 - intake（需求准入）阶段，`orchestrator` 依据已确认基线判定每项工作的 **T 类**与**风险等级**，并据此选定 **G0/G1/G2**。
-- 决策连同依据写入 intake 记录与交接消息，可机器解析：
-  `gate: G1`、`task_class: T4`、`risk: R-moderate`、`reason: ...`、`evidence: <基线 revision / 交接物路径>`。
+- 决策连同依据写入**任务卡 body（卡面）**与交接消息，可机器解析。六个字段**全部必填**：
+
+  ```yaml
+  task_class: T0 | T1 | T2 | T3 | T4 | T5 | T6
+  risk: R-none | R-low | R-moderate | R-high | R-critical
+  gate: G0 | G1 | G2
+  evidence_level: L0 | L1 | L1+L2 | Full
+  reason: <改动面 / 不可逆性 / 爆炸半径 的一句话依据>
+  evidence: <基线 revision / content hash 或交接物路径>
+  ```
+
+  取值必须逐字取自 §3/§4 与 `artifact-pyramids/references/evidence-levels-and-seb.md` §1 的令牌表，不得自造同义词或追加说明文字。**缺任一字段即视为 intake 未完成**，不得进入分解与路由；只写进对话而卡面缺失时，下游按「未收到 intake 判定」处理并保守升级。字段模板与检查清单见 `requirements-intake.md` §6.1 / §6.2。
 - **下游继承。** 分解出的子任务沿用同一门禁模式，不得各自重新判定——这正是「要不要金字塔 / 要不要 reviewer」出现相反判断的根因。
 - **跳过与降级必须有记录。** G0/G1 的决策与依据随 orchestrator 交接消息一并保留（对齐「跳过专家要记录原因」）。
 - **信息不足时保守升级。** 无法判定改动面或爆炸半径时按 G2 处理，不猜。
@@ -76,7 +86,7 @@
 
 - **进入**：T2；T3（非生产影响）；T4（普通代码），且具备可判定验收标准与固定 SHA / 产物。
 - **拓扑**：reviewer 卡 `parents=[实现卡 或 QA 卡]`；综合卡 `parents=[QA 卡]`，**不含** reviewer 边。
-- **交接要求**：G1 交接**必须**携带 `review_status: pending` 与证据包（`evidence_level` + `seb_integrity` + SEB 必需字段）。G1 下综合卡不被 reviewer 阻塞，因此最终人工批准须等评审落地，或由责任人显式接受残余风险。
+- **交接要求**：G1 交接**必须**携带 `review_status: pending` 与证据包（`evidence_level` + `seb_integrity` + SEB 必需字段）。`seb_integrity` 只有 `passed` / `failed` / `not_required` 三个逐字取值：生产者交接自产证据时为 `not_required`，`reviewer` 完成完整性核验后改填 `passed` / `failed`（语义与填权见 `artifact-pyramids/references/evidence-levels-and-seb.md` §4.1）。G1 下综合卡不被 reviewer 阻塞，因此最终人工批准须等评审落地，或由责任人显式接受残余风险。
 - **证据不足**：`seb_integrity: failed`、档位低于 intake 下发值或 SEB 必需字段缺失时**不得建 reviewer 卡**，退回原生产者补齐；预算耗尽只能标 `confidence: reduced` + `uncovered` 部分裁决。处置表见 `delivery-governance.md` §6.2。
 - **退出（通过）**：reviewer 通过且无阻断缺陷 → 综合可推进。
 - **退出（阻断）**：G1 reviewer 在综合完成后发现阻断级缺陷 → 在实现卡上 `kanban_request_changes`，由 `orchestrator` 将综合产物标记 `superseded` 并重跑受影响分支。
@@ -86,7 +96,7 @@
 
 - **进入**：T5/T6；T3 影响生产；G1 发现阻断缺陷且已交付 SHA；或 intake 信息不足的保守升级。
 - **拓扑**：综合卡 `parents=[..., reviewer]`，reviewer 为硬父卡。
-- **交接要求**：证据包必须携带 `evidence_level`（T5/T6 为 `Full`）与 `seb_integrity: passed`，SEB 必需字段齐全；应 `Full` 却无 SEB 或 `seb_integrity: failed` 时**阻断**，不得进入 reviewer 门与批准阶段（处置见 `delivery-governance.md` §6.2）。
+- **交接要求**：证据包必须携带 `evidence_level`（T5/T6 为 `Full`），SEB 必需字段齐全。生产者交接时 `seb_integrity` 为 `not_required`（自产，尚无复用方核验）；**G2 通过前必须由 `reviewer` 给出 `passed`**（`reviewer` 未给出核验结论、应 `Full` 却无 SEB、或出现 `seb_integrity: failed` 时**阻断**，不得进入批准阶段，处置见 `delivery-governance.md` §6.2）。
 - **退出（通过）**：reviewer 结论二元（pass）并附原始命令与输出。
 - **退出（阻断）**：`kanban_request_changes` 回原实现者；行为性改动先由 `qa-engineer` 重跑受影响验证。
 - **预算**：≤ 30 轮 / ≤ 900s（目标值）。
