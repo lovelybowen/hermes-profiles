@@ -1,5 +1,5 @@
 name: debugger
-version: 1.0.0
+version: 1.1.1
 description: 系统化调试工程师 - 先查明根因，再实施修复，擅长错误调查、问题复现和测试驱动调试。
 hermes_requires: '>=0.21.0'
 author: lovelybowen

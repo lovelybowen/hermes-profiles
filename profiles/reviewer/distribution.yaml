@@ -1,5 +1,5 @@
 name: reviewer
-version: 1.0.0
+version: 1.1.1
 description: 代码与架构评审员 - 评审 PR、执行质量门、审计回归风险并依据标准开展验证。
 hermes_requires: '>=0.21.0'
 author: lovelybowen
