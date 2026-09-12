@@ -37,7 +37,8 @@ flowchart LR
 | `skills/` | 方法论、参考资料和技能脚本的共享池 | Hermes Profile 本身 |
 | `profiles/` | 角色身份、工具集、技能依赖和运行协议 | 通用 Agent 配置，可直接脱离 Hermes 运行 |
 | `plugins/` | 可选的 Hermes 插件，例如 `rd-approval` | 主流程的必需依赖 |
-| `default` | 部署侧的投递通道（Telegram/Feishu/Cron/Webhook/CLI → Kanban intake） | 本仓库中的一个 Profile 或研发决策角色 |
+| `product-manager` | 需求侧用户入口：接收研发需求、创建 Kanban intake、产出产品金字塔 | 研发决策者或工程执行角色 |
+| `default` | 通用助手，处理非研发消息（日常问答、维护、配置），不参与研发流程 | 本仓库中的一个 Profile 或研发投递角色 |
 | `orchestrator` | 研发准入、任务分解、专家路由、证据综合 | 业务决策者或风险批准者 |
 
 ## 2. 仓库结构与角色
@@ -81,7 +82,8 @@ hermes-profiles/
 
 | 角色 | 何时进入 | 主要职责 | 典型输出 | 直接面向用户 |
 |---|---|---|---|---|
-| `orchestrator` | 所有研发请求 | 准入、分解、路由、监控、综合 | Flow、任务图、交接与决策包 | 是，作为唯一研发入口 |
+| `product-manager` | 研发需求从任何触发源到达时 | 接收研发需求、创建 triage intake 卡（原文、项目、验收条件、来源）、产品分析与 spec | intake 卡、产品金字塔 | 是，作为需求侧用户入口 |
+| `orchestrator` | 所有研发请求（经 product-manager 的 intake 卡） | 准入、分解、路由、监控、综合 | Flow、任务图、交接与决策包 | 否（接收 intake 卡，不直接面向用户） |
 | `researcher` | 外部事实或证据不足 | 调查、三角验证、来源追溯 | 研究金字塔 | 否 |
 | `technical-architect` | 契约、数据模型、部署或质量属性受影响 | 架构分析、C4、ADR、约束提取 | 架构金字塔 | 否 |
 | `backend-engineer` | 后端实现切片 | API、服务逻辑、数据库和集成 | 实现变更与证据 | 否 |
@@ -94,7 +96,7 @@ hermes-profiles/
 
 ```mermaid
 flowchart TD
-    request["自然语言研发请求"] --> ingress["default / Feishu / Cron / Webhook / CLI"]
+    request["自然语言研发请求"] --> ingress["product-manager（需求侧用户入口）"]
     ingress --> intake["Kanban triage intake<br/>保留原始请求、项目、验收条件、来源"]
     intake --> baseline{"需求基线完整？"}
     baseline -- "否" --> decision["形成候选 revision<br/>交 Intent Owner 确认"]
@@ -121,7 +123,7 @@ flowchart TD
 |---|---|---|---|
 | T0/T1：答问、讨论、研究 | G0 | 不创建 reviewer | `orchestrator` |
 | T2 | G1 | reviewer 可选轻量检查，不作为下游父卡 | 专家（+ QA 视范围） |
-| 普通 T3 / T4 | G1 + QA | reviewer 轻量；QA 必须执行验证 | 专家 + QA |
+| 普通 T3 / T4 | G1 + QA | reviewer 轻量；QA 必须执行验证；L0 快速通道（单文件 ≤30 行、无依赖、未命中高风险清单）→ 工程师自验替代 QA 卡 | 专家 + QA；L0 快速通道仅专家 |
 | T5/T6、影响生产的 T3、信息不足或高风险 | G2 | 同步 reviewer + 完整质量门 | 专家 + QA + reviewer + Risk Approver |
 
 G1 交接必须含 `review_status: pending`；发现缺陷时标记综合产物 `superseded` 并回到实现 / QA。
@@ -198,7 +200,7 @@ flowchart LR
 
 ### 5.1 安装示例（Linux/macOS/Windows 通用）
 
-安装 8 个角色中任意一个（每个角色是独立的 distribution 仓库；完整清单见根 README 的「使用角色配置」）：
+安装 9 个角色中任意一个（每个角色是独立的 distribution 仓库；完整清单见根 README 的「使用角色配置」）：
 
 ```bash
 # 1. 安装角色
@@ -284,7 +286,7 @@ cp -r ~/.hermes/profiles/orchestrator/plugins/rd-approval \
 
 ### 中期：技能回流闭环与证据机器校验
 
-- **技能回流协议**：当前技能流向是单向的（`skills/` 池 → 物化副本 → distribution 分发）。补齐反向闭环：角色在任务执行中产生的技能改进（Hermes 支持 agent 创建 / 修改技能），以「改进建议 + 触发场景 + 涉及技能」的形式归集到 Kanban 任务或定期评审；由人审查后 PR 进本仓库共享池，运行 `sync_skills.py` 物化并 bump distribution 版本，各端 `hermes profile update` 跟进。验收标准：完整跑通一次「项目中发现方法论缺陷 → 池内改进 → 全团队角色更新」的回路，本仓库从分发源升级为团队方法论中枢。
+- **技能回流协议**：~~当前技能流向是单向的（`skills/` 池 → 物化副本 → distribution 分发）。补齐反向闭环：角色在任务执行中产生的技能改进（Hermes 支持 agent 创建 / 修改技能），以「改进建议 + 触发场景 + 涉及技能」的形式归集到 Kanban 任务或定期评审；由人审查后 PR 进本仓库共享池，运行 `sync_skills.py` 物化并 bump distribution 版本，各端 `hermes profile update` 跟进。~~ **已落地人工闭环**：`skills/skill-feedback-loop/SKILL.md` 定义协议与触发条件，`scripts/validate_skill_feedback.py` 校验 payload（必需字段 / type 枚举 / 池内技能存在 / 重复检测），`scripts/version_lock.json` 机器校验「内容变化必须 bump 版本」，GitHub Issue 模板 `.github/ISSUE_TEMPLATE/skill-feedback.yml`（Issue Form 必须用 `.yml`）。**仍属规划**：board 自动扫描、comment 自动汇总、Issue/PR 自动创建——落地前不要描述为已有能力。验收标准：完整跑通一次「项目中发现方法论缺陷 → 池内改进 → 全团队角色更新」的回路，本仓库从分发源升级为团队方法论中枢。
 - 固化结构化交接 Schema，并对字段做静态校验。
 - 自动生成 `changed_files`、blob hash、命令 exit code 和 stdout hash。
 - 自动核验 SEB 完整性，发现 SHA、baseline 或产物 hash 漂移时停止复用。
@@ -300,8 +302,11 @@ cp -r ~/.hermes/profiles/orchestrator/plugins/rd-approval \
 ## 8. 验证清单
 
 ```bash
-# 配置、YAML、manifest、技能副本一致性
-python3 scripts/validate_profiles.py
+# 配置、YAML、manifest、技能副本一致性、Issue Form schema、版本锁定
+python3 scripts/validate_profiles.py    # Windows 用 `python`
+
+# 校验技能回流 payload（格式 / 枚举 / 重复）
+python3 scripts/validate_skill_feedback.py feedback.yaml
 
 # 检查 Markdown 和补丁中的空白错误
 git diff --check

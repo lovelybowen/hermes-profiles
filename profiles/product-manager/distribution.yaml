@@ -1,0 +1,10 @@
+name: product-manager
+version: 1.1.1
+description: 产品经理 - 撰写 spec、管理路线图、对齐团队，把客户需求翻译为可排序的交付物。
+hermes_requires: '>=0.21.0'
+author: lovelybowen
+license: MIT
+env_requires:
+- name: DEEPSEEK_API_KEY
+  description: DeepSeek API key（模型访问，见 config.yaml model.provider）
+  required: true

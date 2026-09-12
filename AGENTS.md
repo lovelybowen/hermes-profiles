@@ -18,6 +18,7 @@ hermes-profiles/
 │   ├── frontend-engineering/
 │   ├── mermaid-diagrams/
 │   ├── orchestration-methodology/
+│   ├── product-methodology/
 │   ├── qa-methodology/
 │   ├── research-methodology/
 │   ├── researcher-workflow/
@@ -30,6 +31,7 @@ hermes-profiles/
 │   ├── debugger/
 │   ├── frontend-engineer/
 │   ├── orchestrator/
+│   ├── product-manager/
 │   ├── qa-engineer/
 │   ├── researcher/
 │   ├── reviewer/
@@ -64,9 +66,9 @@ Hermes 把 `$HERMES_HOME/SOUL.md` 作为身份文档注入每个会话。而 `AG
 
 ### 入口
 
-`orchestrator` 是研发流程的唯一入口，`default` 是部署侧的投递通道（ingress）。普通问答、维护、修复、配置、文档、脚本、工具类操作由 default 直接处理；**「对某个项目的基线需求开发」一律进入 Kanban `triage` intake**，intake 任务保留原始请求、项目、验收条件和来源标识，assignee 固定为 `orchestrator` 走 R&D 流程。其余 7 个角色由 orchestrator 按条件通过 Kanban 任务拉入，不直接面向用户接单。
+`product-manager` 是需求侧的用户入口，`orchestrator` 是研发流程的唯一入口，`default` 回归通用助手、不参与研发流程。普通问答、维护、修复、配置、文档、脚本、工具类操作由 default 直接处理；**「对某个项目的基线需求开发」由 product-manager 接收并创建 Kanban `triage` intake**，intake 任务保留原始请求、项目、验收条件和来源标识，assignee 固定为 `orchestrator` 走 R&D 流程。其余 7 个专家角色由 orchestrator 按条件通过 Kanban 任务拉入，不直接面向用户接单。
 
-在 Feishu/Cron/Webhook/CLI 多触发源部署中，default 只做投递分流：基线需求开发创建 assignee 为 `orchestrator` 的 intake 任务，其余场景直接处理；`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。
+在 Feishu/Cron/Webhook/CLI 多触发源部署中，研发需求通道（bot / webhook 目标）接到 `product-manager` 实例，由它创建 assignee 为 `orchestrator` 的 intake 任务；日常问答等非研发消息继续由 default 通道处理。`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。
 
 ### 角色之间的协调方式
 
@@ -78,13 +80,13 @@ Hermes 把 `$HERMES_HOME/SOUL.md` 作为身份文档注入每个会话。而 `AG
 
 ## 全局 R&D 流程规则
 
-default 只负责入口协议，不自行决定业务语义、风险接受或交付基线；这些事项由 orchestrator 和人类责任人按 Kanban 记录处理。orchestrator 在 intake 时**一次性**确定任务类型与风险等级，下游继承该决定并在交接中记录依据：
+product-manager 与 default 都不自行决定业务语义、风险接受或交付基线；这些事项由 orchestrator 和人类责任人按 Kanban 记录处理。orchestrator 在 intake 时**一次性**确定任务类型与风险等级，下游继承该决定并在交接中记录依据：
 
 | 风险等级 | 门禁 | Reviewer 拓扑 |
 |---|---|---|
 | T0 / T1 | G0 | 不创建 reviewer |
 | T2 | G1 | reviewer 可选轻量检查，不作为下游父卡 |
-| 普通 T3 / T4 | G1 + QA | reviewer 轻量；QA 必须执行验证 |
+| 普通 T3 / T4 | G1 + QA | reviewer 轻量；QA 必须执行验证；**例外**：单文件 ≤30 行、无依赖、未命中高风险清单的 T2/T4 走 L0 快速通道——工程师自验（命令 + exit code 进交接）替代 QA 卡，orchestrator 抽样审计 |
 | T5 / T6、信息不足或高风险 | G2 | 同步 reviewer + 完整质量门 |
 
 G1 交接必须含 `review_status: pending`；发现缺陷时标记综合产物 `superseded` 并回到实现 / QA。
@@ -135,9 +137,9 @@ Hermes 只索引名为 `SKILL.md` 的文件，且 `skill_view` 不支持 `父/�
 
 ## 技能副本规则（物化，非符号链接）
 
-- 各角色 `skills/` 下是**真实文件副本**，由 `python3 scripts/sync_skills.py` 按 `profile.yaml` 的依赖声明从仓库根 `skills/` 池物化生成
+- 各角色 `skills/` 下是**真实文件副本**，由 `python3 scripts/sync_skills.py`（Windows 用 `python`，`python3` 会退出 9009）按 `profile.yaml` 的依赖声明从仓库根 `skills/` 池物化生成
 - 禁止符号链接：`hermes profile install` 硬性拒绝含 symlink 的 payload；Windows 克隆（`core.symlinks=false`）会把 symlink 退化为文本文件
-- 修改共享池中的技能后，必须运行 `python3 scripts/sync_skills.py` 重新物化并连同副本一起提交（CI 会校验副本与池一致）
+- 修改共享池中的技能后，必须运行 `python3 scripts/sync_skills.py` 重新物化并连同副本一起提交（CI 会校验副本与池一致）；同时 bump 受影响角色 distribution 的版本并以 `--bump-lock` 更新 `scripts/version_lock.json`（详见 CONTRIBUTING「版本锁定」）
 - 新增技能：先放入 `skills/` 池，再在 `profile.yaml` 的 `skills.required` 里声明，然后跑 sync_skills.py
 
 ## 凭据与运行时状态
@@ -160,8 +162,8 @@ Hermes 只索引名为 `SKILL.md` 的文件，且 `skill_view` 不支持 `父/�
 这两个症状同时消除。若在仓库内运行过 Hermes 留下运行时残留：
 
 ```bash
-./scripts/clean_profile_runtime.sh          # 清理运行时状态
-python3 scripts/validate_profiles.py        # 校验结构与副本一致性
+./scripts/clean_profile_runtime.sh      # 清理运行时状态
+python3 scripts/validate_profiles.py    # 校验结构、副本一致性、Issue Form、版本锁定（Windows 用 `python`）
 ```
 
 `.no-bundled-skills` 标记随 distribution 一并安装，安装出的 profile 不会再被播种自带技能。

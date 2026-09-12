@@ -6,8 +6,8 @@
 
 ## 核心玩法
 
-- **全角色矩阵一键分发**：本仓库（monorepo）是唯一维护源——共享技能池 `skills/` 单一来源，`sync_skills.py` 按 `profile.yaml` 依赖物化副本；`publish.sh`（git subtree split）把每个角色发布为独立 distribution 仓库。新人或跨岗成员 `hermes profile install github.com/lovelybowen/<role>-agent --alias` 即可，`install-all.sh` 一键装齐 8 个角色。
-- **多角色环境隔离**：每个角色独立的 SOUL、模型配置、技能集与记忆；orchestrator 是研发流程唯一入口，通过 Hermes Kanban 按名路由任务，default 作为部署侧投递通道只做分流，不越权改代码。
+- **全角色矩阵一键分发**：本仓库（monorepo）是唯一维护源——共享技能池 `skills/` 单一来源，`sync_skills.py` 按 `profile.yaml` 依赖物化副本；`publish.sh`（git subtree split）把每个角色发布为独立 distribution 仓库。新人或跨岗成员 `hermes profile install github.com/lovelybowen/<role>-agent --alias` 即可，`install-all.sh` 一键装齐 9 个角色。
+- **多角色环境隔离**：每个角色独立的 SOUL、模型配置、技能集与记忆；product-manager 是需求侧用户入口（接收研发需求并建 intake 卡），orchestrator 是研发流程唯一入口，通过 Hermes Kanban 按名路由任务；default 回归通用助手，不参与研发流程。
 - **方法论沉淀在技能，不在提示词**：产物金字塔（渐进披露的证据结构）、结构化交接契约（状态/摘要/产物/证据/风险/待裁决）、证据档位（L0→Full）都封装为可复用技能，随角色分发，也可移植到其他支持 Agent Skills 开放标准的运行环境。
 
 ## 设计原则
@@ -20,4 +20,4 @@
 
 ## 后续方向
 
-见 [docs/hermes-profiles-guide.md 第 7 节](docs/hermes-profiles-guide.md) 的路线图：项目接入约定与安装摩擦（AGENTS.md 项目绑定、版本兼容矩阵、跨平台检查）→ 技能回流闭环与证据机器校验（技能回流协议、交接 Schema、SEB 完整性自动核验）→ 补齐编排平台能力（workspace 声明式路由、运行中取消、门禁降级）。
+见 [docs/hermes-profiles-guide.md 第 7 节](docs/hermes-profiles-guide.md) 的路线图：项目接入约定与安装摩擦（AGENTS.md 项目绑定、版本兼容矩阵、跨平台检查）→ 技能回流闭环与证据机器校验（技能回流协议**人工闭环已落地**——payload 校验器 + Issue Form + 版本锁定；board 自动扫描与自动汇总仍属规划；交接 Schema、SEB 完整性自动核验）→ 补齐编排平台能力（workspace 声明式路由、运行中取消、门禁降级）。

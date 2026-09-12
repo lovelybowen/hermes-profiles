@@ -80,6 +80,25 @@ mkdir -p /root/kanban-evidence/<prev-task-id> && \
 - `/root/.hermes/kanban/attachments/t_2963780e/extract_metrics.py` —— §2 的完整实现（DB 时间戳 + 日志尾部统计 + git diff + worktree 清册 + 两轮对比）
 - `/root/.hermes/kanban/attachments/t_2963780e/verify_final.sh` —— 固定 SHA / blob / 改动覆盖 / 工作树状态 / 门禁产物 sha256 的独立锚点复算脚本
 
+## 6. Intake 分类器校准指标（L0 快速通道健康度）
+
+L0 快速通道（`gate-topology.md` §4.1）把分类质量从「流程约定」变成「可度量的运行时行为」，需要持续校准。以下指标从 Kanban 卡面与 git 记录**可复算**：
+
+| 指标 | 取数来源 | 健康信号 |
+|---|---|---|
+| **L0 占比** | 卡面 `evidence_level: L0` 令牌 / 总实现卡数 | 持续偏低说明分类过保守（快速通道没人走）|
+| **L0 事后升级率** | `needs_reclass: true` 令牌 + 抽样审计命中的升级触发器数 / L0 卡数 | 偏高说明 L0 阈值过松或快判不可靠 |
+| **L0 返工率** | L0 卡后续触发 `kanban_request_changes` 的比例 | 偏高说明自验命令质量不足 |
+| **L0 缺陷逃逸** | 抽样审计中发现的、验收命令未覆盖的缺陷数 | 任何逃逸都应回写验收模板 |
+| **各档位 P50 壁钟** | 按 `evidence_level` 分组的根卡 `created_at` → 末子卡 `completed_at` | L0 与 L1 应有稳定差值，否则快速通道无意义 |
+| **各角色实际调用率** | `task_runs` 按 profile 汇总 / 实现卡数 | 验证「L0 只建 engineer 卡」是否属实 |
+
+判定口径：
+
+- 令牌直接 grep 卡面（`evidence_level`、`needs_reclass` 当初设计为稳定可检索令牌，正是为此）；
+- **L0 事后升级率或逃逸率连续超阈值 → 按主题收紧 L0 阈值或回滚快速通道**（对齐 AGENTS.md「迁移」节的按主题回滚）；
+- 阈值在阶段 0–1 校准前是设计目标值（与 §4 预算纪律同口径），不得当成已生效的自动回滚机制——**回滚决策由 orchestrator / Delivery Owner 人工执行**。
+
 SOURCES
 
 ```

@@ -30,10 +30,13 @@ hermes-profiles/
 │   ├── frontend-engineering/
 │   ├── mermaid-diagrams/
 │   ├── orchestration-methodology/
+│   ├── product-methodology/
+│   ├── project-context-binding/
 │   ├── qa-methodology/
 │   ├── research-methodology/
 │   ├── researcher-workflow/
 │   ├── review-methodology/
+│   ├── skill-feedback-loop/
 │   ├── software-architecture-analysis/
 │   └── systematic-debugging/
 ├── profiles/                           ← 角色配置（每个可独立安装为 distribution）
@@ -41,6 +44,7 @@ hermes-profiles/
 │   ├── debugger/                       ← 根因分析、错误诊断
 │   ├── frontend-engineer/              ← UI 组件、状态管理、API 集成、性能
 │   ├── orchestrator/                   ← 基线准入、任务分解、专家路由、质量门监控
+│   ├── product-manager/                ← 需求侧用户入口：接收研发需求、创建 triage intake
 │   ├── qa-engineer/                    ← 测试策略、自动化、质量门
 │   ├── researcher/                     ← 深度调查、证据综合
 │   ├── reviewer/                       ← 代码/架构评审、质量门
@@ -50,7 +54,7 @@ hermes-profiles/
 │   ├── sync_skills.py                  ← 按 profile.yaml 依赖物化技能副本
 │   ├── validate_profiles.py            ← 结构 / manifest / 副本一致性校验
 │   ├── publish.sh                      ← 发布单角色到独立 distribution 仓库
-│   └── install-all.sh                  ← 一键安装 / 更新全部 8 个角色
+│   └── install-all.sh                  ← 一键安装 / 更新全部 9 个角色
 ├── docs/hermes-profiles-guide.md       ← 对外说明文档（定位、流程、嵌入方式）
 ├── .github/workflows/profile-checks.yml ← CI：校验 + README 覆盖检查
 ├── .gitignore                          ← 排除凭据与运行时状态
@@ -60,7 +64,9 @@ hermes-profiles/
 
 工程执行类角色（backend/frontend/qa/debugger）在 Linux 本地 worktree 中使用 Hermes 自带 codex 技能调用 `codex exec` 完成实现。
 
-仓库根 `skills/` 是技能的**单一来源**；各角色 `skills/` 下的副本由 `scripts/sync_skills.py` 按 `profile.yaml` 的依赖声明从共享池物化为**真实文件**。不再使用符号链接：`hermes profile install` 会硬性拒绝含 symlink 的 payload，且 Windows 克隆（`core.symlinks=false`）会把 symlink 退化为文本文件。修改共享池后必须运行 `python3 scripts/sync_skills.py` 重新物化并提交。
+仓库根 `skills/` 是技能的**单一来源**；各角色 `skills/` 下的副本由 `scripts/sync_skills.py` 按 `profile.yaml` 的依赖声明从共享池物化为**真实文件**。不再使用符号链接：`hermes profile install` 会硬性拒绝含 symlink 的 payload，且 Windows 克隆（`core.symlinks=false`）会把 symlink 退化为文本文件。修改共享池后必须运行 `python3 scripts/sync_skills.py`（Windows 用 `python`）重新物化并提交。
+
+技能回流（任务中发现方法论缺陷 → 回传共享池）的协议见 `skills/skill-feedback-loop/SKILL.md`：当前为人工流程，payload 用 `scripts/validate_skill_feedback.py` 校验，GitHub Issue 模板为 `.github/ISSUE_TEMPLATE/skill-feedback.yml`。profile 内容变化必须 bump distribution 版本，`scripts/version_lock.json` 提供机器校验（`python scripts/validate_profiles.py --bump-lock <role>` 更新锁定）。
 
 每个角色配置包含：
 
@@ -82,6 +88,7 @@ hermes-profiles/
 | 角色 | distribution 仓库 | 职责 |
 |---|---|---|
 | `orchestrator` | `github.com/lovelybowen/orchestrator-agent` | 研发准入、任务分解、专家路由、质量门监控 |
+| `product-manager` | `github.com/lovelybowen/product-manager-agent` | 需求侧用户入口：接收研发需求、创建 intake、产品金字塔 |
 | `researcher` | `github.com/lovelybowen/researcher-agent` | 深度调查、证据三角验证 |
 | `technical-architect` | `github.com/lovelybowen/technical-architect-agent` | 系统架构：C4 + ADR + arc42 |
 | `backend-engineer` | `github.com/lovelybowen/backend-engineer-agent` | API 实现、服务逻辑、数据库访问 |
@@ -94,7 +101,7 @@ hermes-profiles/
 # 安装单个角色
 hermes profile install github.com/lovelybowen/orchestrator-agent --alias
 
-# 或一键安装全部 8 个角色
+# 或一键安装全部 9 个角色
 # 方式一：克隆本仓库后执行（适用于任何可见性）
 git clone https://github.com/lovelybowen/hermes-profiles.git && cd hermes-profiles
 ./scripts/install-all.sh
@@ -112,7 +119,7 @@ hermes --profile orchestrator
 hermes profile update orchestrator
 ```
 
-> **重要**：8 个角色必须使用 manifest 中的原始名字安装（不要用 `--name` 改名），否则 orchestrator 的 Kanban 按名路由会断链。
+> **重要**：9 个角色必须使用 manifest 中的原始名字安装（不要用 `--name` 改名），否则 orchestrator 的 Kanban 按名路由会断链。
 >
 > 开发期可从本仓库本地直装测试：`hermes profile install ~/hermes-profiles/profiles/orchestrator --name orch-dev`（测试专用名，避免占用正式 profile 名）。
 
@@ -120,12 +127,12 @@ hermes profile update orchestrator
 
 ## 入口
 
-**`orchestrator` 是研发流程的唯一入口；`default` 是部署侧的投递通道（ingress），不是研发决策角色。** 所有触发源（Telegram/Feishu、Cron 定时读取需求仓库、Webhook、CLI）产生的研发请求，都以 assignee 为 `orchestrator` 的 Kanban `triage` intake 任务进入流程，保留原始请求、项目、验收条件和来源标识。非研发类操作（日常问答、Hermes 自身维护、配置调整）由 `default` 直接处理，不进 R&D 流程；`default` 不直接改业务代码、不调用工程 Profile。
+**`product-manager` 是需求侧的用户入口，`orchestrator` 是研发流程的唯一入口；`default` 回归通用助手，不参与研发流程。** 所有触发源（Telegram/Feishu、Cron 定时读取需求仓库、Webhook、CLI）中的研发需求由 product-manager 接收，以 assignee 为 `orchestrator` 的 Kanban `triage` intake 任务进入流程，保留原始请求、项目、验收条件和来源标识。非研发类操作（日常问答、Hermes 自身维护、配置调整）由 `default` 直接处理，不进 R&D 流程；`default` 不直接改业务代码、不调用工程 Profile。
 
 ```
 你（需求 / 变更请求，来自 TG / Feishu / Cron / Webhook / CLI）
     ↓
-default（部署侧投递通道，只做分流：研发请求 → Kanban intake，其余直接处理）
+product-manager（需求侧用户入口：研发需求 → 创建 Kanban intake 卡并确认回执）
     ↓ Kanban intake（assignee: orchestrator）
 orchestrator                    ← 研发流程唯一入口：准入、分解、路由、汇总
     ├─ 基线未就绪 → 形成候选 revision，交回 Intent Owner 确认
@@ -140,15 +147,15 @@ orchestrator                    ← 研发流程唯一入口：准入、分解�
 Intent Owner / Delivery Owner / Risk Approver   ← push / 合并 / 部署 / 风险接受
 ```
 
-其余 7 个角色是**按需参与者**，由 `orchestrator` 通过 Kanban 任务拉入，不直接面向用户接单。
+其余 7 个专家角色是**按需参与者**，由 `orchestrator` 通过 Kanban 任务拉入，不直接面向用户接单。
 
-触发源（Telegram/Feishu、Cron 读取需求仓库、Webhook、CLI）通过 `default` 投递：只有基线需求开发会创建 assignee 为 `orchestrator` 的 intake 任务，其余场景 `default` 直接处理；编排和执行仍由 Kanban Flow 完成，`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。启动编排入口的命令见上文「使用角色配置」。
+部署约定：研发需求通道（Feishu bot / Webhook 目标 / Cron 任务）接到 `hermes --profile product-manager` 实例，由它创建 assignee 为 `orchestrator` 的 intake 任务；日常问答等非研发消息继续由 default 通道处理。编排和执行仍由 Kanban Flow 完成，`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。启动编排入口的命令见上文「使用角色配置」。
 
 ## 工作流
 
 ```
 自然语言需求
-  → default 分流：研发请求创建 triage intake（保留原始请求与来源标识），非研发请求直接处理
+  → product-manager 接收：研发需求创建 triage intake（保留原始请求与来源标识），非研发消息留在 default 通道
   → orchestrator 需求准入：抽取角色/场景/流程/业务规则/验收标准，形成候选 revision
   → Intent Owner 确认基线
   → orchestrator 建立 Kanban 任务图
@@ -160,6 +167,12 @@ Intent Owner / Delivery Owner / Risk Approver   ← push / 合并 / 部署 / 风
   → 按风险选择 L0/L1/L1+L2/Full 证据；SEB 完整性失败则全量复算
   → reviewer 对固定 commit SHA 独立评审（G0 无 reviewer，G1 轻量，G2 同步）
   → orchestrator 汇总证据，交人类责任人批准 push / 合并 / 部署
+
+小任务（L0 快速通道，单文件 ≤30 行、无依赖、未命中高风险清单）：
+  → orchestrator 快判（intake-fast-path.md 一页决策树 + intake_signals.py 机械信号）
+  → 单张 engineer 实现卡 + 三项简化基线
+  → 工程师自验（命令 + exit code 进交接），不建 QA 卡 / 综合卡 / 金字塔
+  → orchestrator 以「工程师交接 + intake 块」回执，事后抽样审计
 ```
 
 工作区和通知也按风险选择：scratch 用于只读讨论/研究/规划，受控 dir 仅用于非代码串行资产，低风险同 Flow 代码任务可复用 Flow worktree，并行/高风险/破坏性实验使用 per-task worktree。默认 exception-only 通知，常规进展留在 Kanban；流程迁移依次经过 observe、shadow、gray rollout、expand、default。停止由 orchestrator 接收并阻止下游新建/解锁；运行中取消、自动超时降级、声明式门禁和事件 roll-up 暂属平台缺口。

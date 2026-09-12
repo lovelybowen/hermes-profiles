@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install all 8 role profiles from their dedicated distribution repos.
+# Install all 9 role profiles from their dedicated distribution repos.
 #
 # Usage:
 #   ./install-all.sh              # install all roles
@@ -15,6 +15,7 @@ ROLES=(
   debugger
   frontend-engineer
   orchestrator
+  product-manager
   qa-engineer
   researcher
   reviewer

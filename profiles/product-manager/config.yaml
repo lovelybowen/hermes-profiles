@@ -1,0 +1,11 @@
+model:
+  default: deepseek-v4-flash
+  provider: deepseek
+  base_url: https://api.deepseek.com/v1
+toolsets:
+  - file
+  - web
+  - skills
+  - session_search
+  - clarify
+  - kanban

@@ -13,7 +13,7 @@
 | **R-none** | T0 答问 / T1 讨论研究 | **R0** `scratch`（只读，不写文件） | 仅 `orchestrator`，直接回答 | **G0** | 否 |
 | **R-low** | T2 文档 | **R0'** `dir:<工作线绝对路径>`（非 git 资产）或 **R2** worktree（git 仓库内文档） | 作者 + `reviewer`（可抽样） | **G1** | 否 |
 | **R-moderate** | T3 配置 | **R2** Flow 级复用；非代码配置走 **R1/R1'** | 按拓扑的 engineer + `qa-engineer` + `reviewer` | **G1**；影响生产 / 密钥 / CI → **G2** | 视影响面 |
-| **R-moderate** | T4 普通代码 | **R2** Flow 级 worktree 复用；命中 **S1–S4** 任一 → **R3** per-task | engineer（按系统拓扑）+ `qa-engineer` + `reviewer` | **G1 + QA 门** | 是 |
+| **R-moderate** | T4 普通代码 | **R2** Flow 级 worktree 复用；命中 **S1–S4** 任一 → **R3** per-task | engineer（按系统拓扑）+ `qa-engineer` + `reviewer`；**L0 快速通道**（`gate-topology.md` §4.1）只建 engineer 卡 | **G1 + QA 门**；L0 快速通道 → 工程师自验 | 是；L0 快速通道 → 自验 + 抽样审计 |
 | **R-high** | T5 高风险代码 / 架构 | **R3** per-task worktree（强制隔离） | 条件性 `researcher` / `technical-architect` + engineer + `qa-engineer` + `reviewer` + `Risk Approver` | **G2** | 是 |
 | **R-critical** | T6 安全 / 合规 | **R3** per-task worktree + 最小权限 / 密钥隔离 | 同上 + `Risk Approver` | **G2** | 是 |
 

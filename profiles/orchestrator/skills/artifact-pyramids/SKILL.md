@@ -145,6 +145,8 @@ my-project/
 
 来自 Kanban Flow 的任务，其**证据层深由 intake 一次性决定，下游继承**，不得由工程师或 reviewer 自行降档。四档为 `L0` / `L1` / `L1+L2` / `Full`：
 
+**L0 快速通道的退出义务（工程师侧）：** 实现中发现改动将超出 L0 阈值（多文件、>30 行、需要动依赖 / 接口 / schema，或业务风险命中高风险清单）时，立即停止扩展改动，在交接消息标注 `needs_reclass: true` 并说明触发信号，交回 orchestrator 重新分类——不得「先做完再补材料」。`needs_reclass` 是稳定可检索令牌，计入 intake 校准指标。规则出处：`orchestration-methodology/references/gate-topology.md` §4.1。
+
 | 档位 | 适用场景 | 最低产物 | 最低证据强度 |
 |---|---|---|---|
 | `L0` | T0/T1；单文件 ≤30 行且无依赖的 T2/T4；纯状态 / 阻断 / 澄清 / 审批 | **不生成金字塔**，只给结构化交接消息 | 变更清单 + 命令 exit code（或显式「无改动」） |

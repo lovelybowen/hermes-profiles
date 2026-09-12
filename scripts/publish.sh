@@ -25,6 +25,7 @@ declare -A REMOTES=(
   [debugger]="https://github.com/lovelybowen/debugger-agent.git"
   [frontend-engineer]="https://github.com/lovelybowen/frontend-engineer-agent.git"
   [orchestrator]="https://github.com/lovelybowen/orchestrator-agent.git"
+  [product-manager]="https://github.com/lovelybowen/product-manager-agent.git"
   [qa-engineer]="https://github.com/lovelybowen/qa-engineer-agent.git"
   [researcher]="https://github.com/lovelybowen/researcher-agent.git"
   [reviewer]="https://github.com/lovelybowen/reviewer-agent.git"
@@ -41,8 +42,15 @@ cd "$(git rev-parse --show-toplevel)"
 [[ -z "$(git status --porcelain)" ]] || { echo "❌ 工作区不干净，先 commit："; git status --short; exit 1; }
 
 echo "── 发布检查：validate_profiles.py"
-python3 scripts/validate_profiles.py 2>/dev/null \
-  || /d/hermes/hermes-agent/venv/Scripts/python scripts/validate_profiles.py
+# python3 is the norm on macOS/Linux; on Windows git-bash `python3` exits 9009.
+run_python() {
+  if command -v python3 >/dev/null 2>&1 && python3 -c "import sys" >/dev/null 2>&1; then
+    python3 "$@"
+  else
+    python "$@"
+  fi
+}
+run_python scripts/validate_profiles.py
 
 CURRENT_VERSION=$(grep -E '^version:' "$PREFIX/distribution.yaml" | head -1 | sed 's/version:[[:space:]]*//; s/["'\'']//g' | tr -d '\r')
 echo "── $ROLE 当前版本: $CURRENT_VERSION"
@@ -57,7 +65,7 @@ fi
 # ---- 1. 版本号 bump ---------------------------------------------------------
 if [[ -n "$ARG2" && "$ARG2" != "$CURRENT_VERSION" ]]; then
   echo "── bump version → $ARG2"
-  python3 - "$PREFIX/distribution.yaml" "$ARG2" <<'PY'
+  run_python - "$PREFIX/distribution.yaml" "$ARG2" <<'PY'
 import re, sys
 p, v = sys.argv[1], sys.argv[2]
 s = open(p, encoding="utf-8").read()
