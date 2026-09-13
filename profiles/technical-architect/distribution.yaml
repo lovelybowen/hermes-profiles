@@ -1,5 +1,5 @@
 name: technical-architect
-version: 1.1.1
+version: 1.2.0
 description: 系统架构师 - 设计服务边界、API 契约、部署拓扑和运行基础设施，覆盖扩展特性、失败模式、可观测性与安全边界。开展发现会话并生成架构决策记录，以产物金字塔形式输出架构文档。
 hermes_requires: '>=0.21.0'
 author: lovelybowen

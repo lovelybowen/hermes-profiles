@@ -77,9 +77,9 @@
 - **R5 硬失败在建图阶段**，不要留到 dispatcher `spawn_failed`。
 - 人类显式 `--workspace` / `workspace_kind=` 覆盖路由建议，但应在任务注释记录理由。
 
-### 2.5 Linux Codex 执行
+### 2.5 本地 Codex 执行
 
-工程 Profile 在 Kanban 提供的本地独立 worktree 中调用 Hermes 自带 `codex` 技能。工作区、Codex 当前目录、Git branch 和测试环境必须属于同一 Linux worktree；跨角色交接使用 task id、branch、commit SHA 和 repo-relative artifact。需要机器解析时可额外使用 Codex 的 `--json` 输出，但不依赖自定义 Runner。
+工程 Profile 在 Kanban 提供的本地独立 worktree 中调用 Hermes 自带 `codex` 技能。工作区、Codex 当前目录、Git branch 和测试环境必须属于同一本地 worktree；跨角色交接使用 task id、branch、commit SHA 和 repo-relative artifact。需要机器解析时可额外使用 Codex 的 `--json` 输出，但不依赖自定义 Runner。
 
 ## 3. 分支与提交约定
 
@@ -126,6 +126,7 @@ task/<task-id>-<short-slug>
 | 修改数据库、基础设施、密钥 | **需要 `Risk Approver` 批准** |
 | 接受残余风险 / 例外 | **需要 `Risk Approver` 批准** |
 | 修改已确认需求基线 | **需要 `Intent Owner` 批准** |
+| 分解计划放行（建任何下游执行卡之前，DA 门） | **需要人类批准**（默认 `Delivery Owner` + 发起用户；G0 与 L0 快速通道豁免）——见 `references/decomposition-approval.md` |
 
 人类责任人不是可调度的 Hermes Profile：`Intent Owner`（业务价值与语义）、`Delivery Owner`（技术范围与交付取舍）、`Risk Approver`（高风险例外与残余风险）。
 

@@ -7,15 +7,15 @@
 
 | Profile | 当前版本 | hermes_requires | 已验证 Hermes 版本 | 备注 |
 |---|---|---|---|---|
-| orchestrator | 1.1.1 | `>=0.21.0` | 0.21.2 | 依赖 `kanban.orchestrator_profile`、boards、卡片 `--goal`、`--completion-contract` |
-| researcher | 1.1.1 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
-| technical-architect | 1.1.1 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
-| backend-engineer | 1.1.1 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
-| frontend-engineer | 1.1.1 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
-| qa-engineer | 1.1.1 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
-| debugger | 1.1.1 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
-| reviewer | 1.1.1 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
-| product-manager | 1.1.1 | `>=0.21.0` | 0.21.2 | 无平台特性依赖；需求侧用户入口 |
+| orchestrator | 1.3.0 | `>=0.21.0` | 0.21.2 | 依赖 `kanban.orchestrator_profile`、boards、卡片 `--goal`、`--completion-contract`；1.3.0 起 DA 分解审批门（plan_approve 决策 + 审批卡拓扑） |
+| researcher | 1.2.0 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
+| technical-architect | 1.2.0 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
+| backend-engineer | 1.2.0 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
+| frontend-engineer | 1.2.0 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
+| qa-engineer | 1.2.0 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
+| debugger | 1.2.0 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
+| reviewer | 1.2.0 | `>=0.21.0` | 0.21.2 | 无平台特性依赖 |
+| product-manager | 1.2.0 | `>=0.21.0` | 0.21.2 | 无平台特性依赖；需求侧用户入口 |
 
 ## 平台能力 → 最低 Hermes 版本
 

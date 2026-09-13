@@ -83,7 +83,7 @@ hermes-profiles/
 | 角色 | 何时进入 | 主要职责 | 典型输出 | 直接面向用户 |
 |---|---|---|---|---|
 | `product-manager` | 研发需求从任何触发源到达时 | 接收研发需求、创建 triage intake 卡（原文、项目、验收条件、来源）、产品分析与 spec | intake 卡、产品金字塔 | 是，作为需求侧用户入口 |
-| `orchestrator` | 所有研发请求（经 product-manager 的 intake 卡） | 准入、分解、路由、监控、综合 | Flow、任务图、交接与决策包 | 否（接收 intake 卡，不直接面向用户） |
+| `orchestrator` | 所有研发请求（经 product-manager 的 intake 卡） | 准入、分解、**DA 门提审**、路由、监控、综合 | Flow、任务图、审批卡与决策包 | 否（接收 intake 卡，不直接面向用户） |
 | `researcher` | 外部事实或证据不足 | 调查、三角验证、来源追溯 | 研究金字塔 | 否 |
 | `technical-architect` | 契约、数据模型、部署或质量属性受影响 | 架构分析、C4、ADR、约束提取 | 架构金字塔 | 否 |
 | `backend-engineer` | 后端实现切片 | API、服务逻辑、数据库和集成 | 实现变更与证据 | 否 |
@@ -102,9 +102,15 @@ flowchart TD
     baseline -- "否" --> decision["形成候选 revision<br/>交 Intent Owner 确认"]
     decision --> intake
     baseline -- "是" --> classify["一次性判定 T0-T6、风险、G0/G1/G2、证据档位"]
-    classify --> decompose["orchestrator 分解任务并建立依赖边"]
-    decompose --> route["按条件拉入专家"]
-    route --> implement["工程角色在 Linux 独立 worktree 实现"]
+    classify --> decompose["orchestrator 分解任务"]
+    decompose --> da{"豁免 DA 门？<br/>（G0 / L0 快速通道）"}
+    da -- "否" --> dagate["DA 门：审批卡 + plan_approve<br/>推送执行计划（每环节 profile×职责）"]
+    dagate --> daverdict{"人类裁决"}
+    daverdict -- "approve" --> route["按已批准计划建卡路由"]
+    daverdict -- "reject + rework" --> decompose
+    daverdict -- "reject（取消）" --> cancelled["归档审批卡 + 根卡 settle<br/>推送取消回执"]
+    da -- "是" --> route
+    route --> implement["工程角色在独立 worktree 实现"]
     implement --> qa["qa-engineer 验证"]
     qa --> known{"已知实现缺陷？"}
     known -- "是" --> implement
@@ -118,6 +124,8 @@ flowchart TD
 ```
 
 ### 门禁和证据由 intake 决定
+
+**DA 分解审批门**：除 G0（T0/T1）与 L0 快速通道豁免外，orchestrator 分解任务后必须先把执行计划（每个环节由哪个 profile 做什么 + 跳过的专家及原因）提交人工审批——approve 才建下游卡；reject 携带重做建议则修订计划重审（plan_rev 递增）；无建议 reject 取消本次任务并推送回执。协议见 `orchestration-methodology/references/decomposition-approval.md`（随 orchestrator 分发）。
 
 | 任务范围 | 门禁 | Reviewer 拓扑 | 典型参与者 |
 |---|---|---|---|
@@ -234,13 +242,21 @@ cp -r ~/.hermes/profiles/orchestrator/plugins/rd-approval \
 
 插件提供 `/decision show|approve|reject ...`，只记录绑定决策并解锁 Kanban 任务，不直接执行 push、merge 或 deploy。
 
-### 5.3 当前嵌入限制
+### 5.3 聊天通知拓扑（exception-only）与异常兜底巡检
+
+聊天通道只收例外事件：根卡终态、人工决策卡、以及异常终态兜底。普通创建、进展、中间完成只写 Kanban。完整订阅集与部署核对清单见 `skills/orchestration-methodology/references/notification-topology.md`（随 orchestrator 分发）。要点：
+
+- **双 bot 拓扑**：default 承接日常问答；product-manager 持有研发入口群 bot。专家角色无 bot，由 Kanban dispatcher 拉起。
+- **订阅集**：根卡（PM 会话内建卡自动订阅，notify+wake）+ 人工决策卡（被动 `notify`）；过程卡订阅由 orchestrator 建卡后逐一剥掉（订阅级联是平台行为，无开关）。
+- **异常兜底**：在 product-manager 上注册一条 no-agent cron 巡检（`skills/kanban-exception-watchdog`，随 PM 分发），扫描零订阅过程卡的失败终态（gave_up / 崩溃 / 超时汇聚），只在有异常时推送。部署命令见该技能 SKILL.md。
+- 只有 PM 的 gateway 设 `kanban.dispatch_in_gateway: true`；PM 侧**不要**设 `kanban.auto_subscribe_on_create: false`（根卡自动订阅正是期望行为）。
+
+### 5.4 当前嵌入限制
 
 > **当前实现**
 
 - Profile 依赖 Hermes 对 `SOUL.md`、`config.yaml`、`profile.yaml` 和 `skills/` 的加载约定。
 - 每个角色发布为独立 distribution 仓库（`scripts/publish.sh` 从本 monorepo 生成）；仓库根 `skills/` 是共享池的单一来源，各角色 `skills/` 下为物化真实副本。
-- 禁止符号链接：`hermes profile install` 硬性拒绝 symlink payload，Windows 克隆（`core.symlinks=false`）会把 symlink 退化为文本文件。
 - 每个 Profile 的 `.no-bundled-skills` 随 distribution 安装，避免 Hermes 首次运行时播种整套自带技能。
 - 修改共享池后运行 `python3 scripts/sync_skills.py` 重新物化；出现 `.hub` 等运行时状态时，先运行 `scripts/clean_profile_runtime.sh`，再运行校验脚本。
 

@@ -46,7 +46,7 @@ hermes-profiles/
 
 ## 角色配置的工作方式
 
-本仓库只保留服务于 R&D 生命周期且具有独立上下文、方法论或质量边界的角色。业务价值、交付取舍和风险接受由人类责任人（`Intent Owner` / `Delivery Owner` / `Risk Approver`）承担，不包装为 Hermes Profile。
+本仓库务于 R&D 生命周期且具有独立上下文、方法论或质量边界的角色。业务价值、交付取舍和风险接受由人类责任人（`Intent Owner` / `Delivery Owner` / `Risk Approver`）承担，不包装为 Hermes Profile。
 
 每个角色配置都是一个目录，包含以下文件：
 
@@ -66,21 +66,21 @@ Hermes 把 `$HERMES_HOME/SOUL.md` 作为身份文档注入每个会话。而 `AG
 
 ### 入口
 
-`product-manager` 是需求侧的用户入口，`orchestrator` 是研发流程的唯一入口，`default` 回归通用助手、不参与研发流程。普通问答、维护、修复、配置、文档、脚本、工具类操作由 default 直接处理；**「对某个项目的基线需求开发」由 product-manager 接收并创建 Kanban `triage` intake**，intake 任务保留原始请求、项目、验收条件和来源标识，assignee 固定为 `orchestrator` 走 R&D 流程。其余 7 个专家角色由 orchestrator 按条件通过 Kanban 任务拉入，不直接面向用户接单。
+`product-manager` 是需求侧的用户入口，`orchestrator` 是研发流程的唯一入口。**「对某个项目的基线需求开发」由 product-manager 接收并创建 Kanban `triage` intake**，intake 任务保留原始请求、项目、验收条件和来源标识，assignee 固定为 `orchestrator` 走 R&D 流程。其余 7 个专家角色由 orchestrator 按条件通过 Kanban 任务拉入，不直接面向用户接单。
 
 在 Feishu/Cron/Webhook/CLI 多触发源部署中，研发需求通道（bot / webhook 目标）接到 `product-manager` 实例，由它创建 assignee 为 `orchestrator` 的 intake 任务；日常问答等非研发消息继续由 default 通道处理。`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。
 
 ### 角色之间的协调方式
 
 - 编排是**集中式**的：`orchestrator` 分解工作、建立 Kanban 任务与依赖边、按条件路由专家、汇总证据。
-- 代码执行在 Linux 本地完成：工程类 Profile 使用 Hermes 自带 `codex` 技能，在 Kanban 独立 worktree 中调用 `codex exec`。
+- 代码执行在本地完成（操作系统无关）：工程类 Profile 使用 Hermes 自带 `codex` 技能，在 Kanban 独立 worktree 中调用 `codex exec`。
 - 交接是**结构化消息**（`status` / `summary` / `artifact` / `evidence` / `risks` / `decisions_required`），不是自然语言散文，也不是单纯一个路径。
 - 产物金字塔是**详细交付物**；状态、阻断、澄清和审批请求不生成金字塔。
 - 人类责任人不是可调度的 Profile。
 
 ## 全局 R&D 流程规则
 
-product-manager 与 default 都不自行决定业务语义、风险接受或交付基线；这些事项由 orchestrator 和人类责任人按 Kanban 记录处理。orchestrator 在 intake 时**一次性**确定任务类型与风险等级，下游继承该决定并在交接中记录依据：
+product-manager 不自行决定业务语义、风险接受或交付基线；这些事项由 orchestrator 和人类责任人按 Kanban 记录处理。orchestrator 在 intake 时**一次性**确定任务类型与风险等级，下游继承该决定并在交接中记录依据：
 
 | 风险等级 | 门禁 | Reviewer 拓扑 |
 |---|---|---|
@@ -88,6 +88,8 @@ product-manager 与 default 都不自行决定业务语义、风险接受或交�
 | T2 | G1 | reviewer 可选轻量检查，不作为下游父卡 |
 | 普通 T3 / T4 | G1 + QA | reviewer 轻量；QA 必须执行验证；**例外**：单文件 ≤30 行、无依赖、未命中高风险清单的 T2/T4 走 L0 快速通道——工程师自验（命令 + exit code 进交接）替代 QA 卡，orchestrator 抽样审计 |
 | T5 / T6、信息不足或高风险 | G2 | 同步 reviewer + 完整质量门 |
+
+**DA 分解审批门**：除 G0 与 L0 快速通道豁免外，orchestrator 分解任务后、建立任何下游执行卡之前，必须把执行计划（每个环节由哪个 profile 做什么）提交人工审批——approve 放行建卡；reject 携带重做建议则修订计划重审；无建议 reject 取消本次任务。协议权威出处为 `skills/orchestration-methodology/references/decomposition-approval.md`。
 
 G1 交接必须含 `review_status: pending`；发现缺陷时标记综合产物 `superseded` 并回到实现 / QA。
 
@@ -99,7 +101,9 @@ G1 交接必须含 `review_status: pending`；发现缺陷时标记综合产物 
 
 ### 通知
 
-默认 exception-only：普通创建、进展、中间完成、常规重试和内部 reviewer 流转只写 Kanban；仅人工裁决、`needs_input` / `capability`、崩溃 / 超时 / 放弃、风险异常、用户主动询问及需求根卡最终结果推送 Feishu。高风险、P0、SEB 异常或共享写事故不得静默。
+默认 exception-only：普通创建、进展、中间完成、常规重试和内部 reviewer 流转只写 Kanban；仅人工裁决、`needs_input` / `capability`、崩溃 / 超时 / 放弃、风险异常、用户主动询问及需求根卡最终结果推送聊天通道。高风险、P0、SEB 异常或共享写事故不得静默。
+
+落地为订阅拓扑（`skills/orchestration-methodology/references/notification-topology.md`）：根卡（入口会话自动订阅）+ 人工决策卡（被动 `notify`）持有订阅；过程卡零订阅，由 orchestrator 建卡后剥掉平台级联复制的订阅；崩溃 / 超时 / 放弃类失败终态由 `kanban-exception-watchdog` 低频 cron 兜底推送（notifier 无按事件类型过滤的原语，事件分类器 / roll-up 仍属平台缺口）。
 
 ### 工作区路由
 
@@ -135,16 +139,15 @@ Hermes 只索引名为 `SKILL.md` 的文件，且 `skill_view` 不支持 `父/�
 - 技能应能在原生 Hermes 安装中工作，不依赖 council、cashew 或其他 Agent 专用基础设施
 - 研究类技能默认使用 Hermes 原生工具（`web_search` / `web_extract` / browser）；外部工具只能作为**可选增强**，不得作为前置依赖
 
-## 技能副本规则（物化，非符号链接）
+## 技能副本规则
 
 - 各角色 `skills/` 下是**真实文件副本**，由 `python3 scripts/sync_skills.py`（Windows 用 `python`，`python3` 会退出 9009）按 `profile.yaml` 的依赖声明从仓库根 `skills/` 池物化生成
-- 禁止符号链接：`hermes profile install` 硬性拒绝含 symlink 的 payload；Windows 克隆（`core.symlinks=false`）会把 symlink 退化为文本文件
 - 修改共享池中的技能后，必须运行 `python3 scripts/sync_skills.py` 重新物化并连同副本一起提交（CI 会校验副本与池一致）；同时 bump 受影响角色 distribution 的版本并以 `--bump-lock` 更新 `scripts/version_lock.json`（详见 CONTRIBUTING「版本锁定」）
 - 新增技能：先放入 `skills/` 池，再在 `profile.yaml` 的 `skills.required` 里声明，然后跑 sync_skills.py
 
 ## 凭据与运行时状态
 
-本仓库只作**分发源**，不再作为运行目录（旧符号链接 + 仓库内运行的布局已废弃）。若仍在仓库内运行过 Hermes，其运行时产物由 `.gitignore` 排除：
+本仓库只作**分发源**，运行时 profile 由 `hermes profile install` 落盘。仓库内的运行时产物由 `.gitignore` 排除：
 
 - 凭据：`profiles/*/.env`、`profiles/*/auth.json`
 - 状态：`state.db*`、`sessions/`、`memories/`、`logs/`、`cron/`、`cache/`、`*.lock`
@@ -152,14 +155,7 @@ Hermes 只索引名为 `SKILL.md` 的文件，且 `skill_view` 不支持 `父/�
 
 新增任何会在 Profile 根目录产生文件的配置时，同步补充 `.gitignore`。
 
-### 历史问题：符号链接技能被误判为「未安装技能」（已通过本次改造解决）
-
-旧布局用符号链接共享技能时，Hermes 启动检测（`Path(skills_dir).rglob("SKILL.md")`）不跟随
-目录符号链接，会把 Profile 判定为空并重新播种自带技能；技能文件解析后落在 `<repo>/skills/`
-还会触发 `skill file is outside the trusted skills directory` 警告。
-
-改为真实副本（仓库仅作分发源，运行时 profile 由 `hermes profile install` 落盘）后，
-这两个症状同时消除。若在仓库内运行过 Hermes 留下运行时残留：
+若出现运行时残留：
 
 ```bash
 ./scripts/clean_profile_runtime.sh      # 清理运行时状态

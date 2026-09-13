@@ -23,7 +23,7 @@
 | 输出与交接契约 | `profiles/reviewer/SOUL.md` →「输出契约」 |
 | 模型、工具集 | `profiles/reviewer/config.yaml` |
 | 技能依赖声明 | `profiles/reviewer/profile.yaml` |
-| 技能方法论 | 仓库根 `skills/`（本目录 `skills/` 是相对符号链接） |
+| 技能方法论 | 仓库根 `skills/`（本目录 `skills/` 是 sync_skills.py 物化的真实副本） |
 
 ## 仓库层面
 

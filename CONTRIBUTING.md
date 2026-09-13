@@ -33,7 +33,6 @@ profiles/some-profile/skills/    ← 真实副本（脚本生成）
     └── some-skill/SKILL.md ...
 ```
 
-- **禁止符号链接**：`hermes profile install` 硬性拒绝 symlink payload；Windows 克隆会把 symlink 退化为文本文件。
 - 修改共享池的技能后，运行 `python3 scripts/sync_skills.py` 重新物化并连同副本一起提交。
 - 如果角色需要共享池中不存在的技能，请先将该技能添加到 `skills/`，再在 `profile.yaml` 的 `skills.required` 中声明，然后跑 sync_skills.py。
 
@@ -60,8 +59,7 @@ profiles/some-profile/skills/    ← 真实副本（脚本生成）
 ## 运行时状态
 
 本仓库只作**分发源**，运行时 profile 由 `hermes profile install` 落盘到 `~/.hermes/profiles/`。
-若曾在仓库内的 profile 目录中运行过 Hermes（旧布局），残留的运行时状态
-（`state.db`、`logs/`、`skills/.hub/`、`skills/.bundled_manifest` 等）已被 `.gitignore` 排除，
+若出现运行时残留（`state.db`、`logs/`、`skills/.hub/` 等），已被 `.gitignore` 排除，
 提交前可运行 `./scripts/clean_profile_runtime.sh` 清理。
 
 `profiles/<name>/.no-bundled-skills` 标记必须保留在版本库中并随 distribution 安装，

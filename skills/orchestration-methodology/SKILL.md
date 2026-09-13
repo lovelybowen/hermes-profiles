@@ -16,8 +16,10 @@ metadata:
 ## 编排生命周期
 
 ```
-校验基线 → 分解 → 路由 → 监控 → 综合 → 人类批准
+校验基线 → 分解 → 分解审批（DA 门） → 路由 → 监控 → 综合 → 人类批准
 ```
+
+非豁免任务（G0 与 L0 快速通道除外）的分解计划必须先经 DA 门人工审批才能建卡路由：approve 放行、reject + 重做建议进入修订循环、无建议 reject 取消本次任务。
 
 ## 门禁拓扑（intake 决策一次）
 
@@ -47,10 +49,13 @@ G1 若在综合完成后发现阻断级缺陷：在实现卡 `kanban_request_cha
 | `references/synthesis-patterns.md` | 需要把多个专家的输出组合成连贯整体 |
 | `references/human-decision-handoff.md` | 业务语义、交付取舍或高风险例外需要人类责任人裁决 |
 | `references/requirements-intake.md` | 收到自然语言需求、需要形成可确认的基线 revision，或收到未就绪基线时 |
+| `references/decomposition-approval.md` | 分解完成后、建立任何下游执行卡之前需要人工审批执行计划（DA 门：approve / rework / cancel 三分支）时 |
 | `references/intake-fast-path.md` | **小任务快判入口**：请求单一无歧义、疑似 L0 快速通道时**先**加载本文件，能分类则不再加载其余参考 |
 | `references/gate-topology.md` | intake 需要判定 T0–T6 与 G0/G1/G2，或需要门禁拓扑（父边）与缺陷回收纪律时 |
 | `references/delivery-governance.md` | 分解实现类工作、分配工作区、设定质量门顺序或判定某个动作是否需要审批时 |
 | `references/rehearsal-comparison-metrics.md` | 需要为重复演练做跨轮定量对比：确定指标字段集、从 Kanban DB / 会话日志 / git 取数，或决定对比前的基线证据冻结方式时 |
+| `references/notification-topology.md` | 需要建卡、剥订阅、配置决策卡通知或部署核对聊天通道（exception-only 订阅拓扑）时 |
+| 共享技能 `kanban-exception-watchdog` | 需要部署 / 审计异常终态兜底巡检（过程卡零订阅后的 crashed / timed_out / gave_up 兜底）时 |
 | `artifact-pyramids/references/evidence-levels-and-seb.md`（共享技能池） | 需要判定 / 继承 `evidence_level`（L0 / L1+L2 / Full）、核验 SEB 完整性，或处理证据不足（阻塞 / 降级）时 |
 | 共享技能 `project-context-binding` | intake 涉及新项目接入、项目 AGENTS.md 必填区校验或 board 选择时 |
 | 共享技能 `skill-feedback-loop` | 任务执行中发现方法论缺陷，需要形成 skill_feedback 回流时 |

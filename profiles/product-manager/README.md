@@ -56,6 +56,7 @@ cp profiles/product-manager/.env.example profiles/product-manager/.env
 | `artifact-pyramids` | 三层渐进披露输出格式 | `skill_view('artifact-pyramids')` |
 | `product-methodology` | RICE、MoSCoW、机会解决方案树、spec 模板、客户访谈、干系人沟通、决策日志 | `skill_view('product-methodology')` |
 | `skill-feedback-loop` | 技能回流协议（条件加载：任务中发现方法论缺陷时） | `skill_view('skill-feedback-loop')` |
+| `kanban-exception-watchdog` | 异常终态兜底巡检（部署用：no-agent cron 注册与脚本说明） | `skill_view('kanban-exception-watchdog')` |
 
 ### 支撑参考
 

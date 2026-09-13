@@ -78,7 +78,7 @@ orchestrator 收到后按完整流程重新分类，**不得沿用旧档位**。
 - → 一张 frontend-engineer 实现卡；交接含 `npm test -- Counter -> exit 0`
 - → 不建金字塔、不建 QA 卡；reviewer 可选，跳过则记录原因
 
-若后续变为「点击调用后端接口、写库、另一页面实时显示」→ 命中接口 + 跨模块 → 退出快速通道，L1+L2，T4 建 QA 卡。
+若后续变为「点击调用后端接口、写库、另一页面实时显示」→ 命中接口 + 跨模块 → 退出快速通道，L1+L2，T4 建 QA 卡。退出快速通道即落入 DA 门适用范围（`references/decomposition-approval.md` §1）。
 
 SOURCES
 

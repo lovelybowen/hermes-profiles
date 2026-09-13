@@ -18,7 +18,7 @@ import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
-ACTIONS = {"baseline_approve", "push", "merge", "deploy", "risk_accept"}
+ACTIONS = {"baseline_approve", "push", "merge", "deploy", "risk_accept", "plan_approve"}
 ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
@@ -52,15 +52,35 @@ def write_atomic(path: Path, data: dict) -> None:
     fd, raw = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     tmp = Path(raw)
     try:
-        os.fchmod(fd, 0o600)
+        try:
+            if hasattr(os, "fchmod"):  # POSIX only; absent on Windows
+                os.fchmod(fd, 0o600)
+        except OSError:
+            pass  # best-effort hardening; the store dir is user-local anyway
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             json.dump(data, handle, ensure_ascii=False, indent=2)
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(tmp, path)
+        _replace_with_retry(tmp, path)
     finally:
         tmp.unlink(missing_ok=True)
+
+
+def _replace_with_retry(tmp: Path, path: Path, attempts: int = 5) -> None:
+    """os.replace with backoff: on Windows, AV/indexers can briefly hold the
+    freshly written temp file (WinError 32), which would otherwise fail the
+    write spuriously."""
+    import time
+
+    for attempt in range(attempts):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.1 * (2 ** attempt))
 
 
 def parse_expiry(value: str) -> datetime:
@@ -72,6 +92,8 @@ def create(args: argparse.Namespace) -> int:
         raise ValueError(f"unsupported action: {args.action}")
     if not args.approver:
         raise ValueError("at least one approver is required")
+    if args.action == "plan_approve" and not args.parent_task_id:
+        raise ValueError("--parent-task-id (flow root task) is required for plan_approve")
     decision_id = args.decision_id or f"dec-{uuid.uuid4().hex[:16]}"
     path = decision_path(decision_id)
     if path.exists():
@@ -79,9 +101,11 @@ def create(args: argparse.Namespace) -> int:
     record = {
         "decision_id": decision_id,
         "task_id": args.task_id,
+        "parent_task_id": args.parent_task_id,
         "baseline_revision": args.baseline_revision,
         "commit_sha": args.commit_sha,
         "requested_action": args.action,
+        "plan_rev": args.plan_rev,
         "allowed_approvers": sorted(set(args.approver)),
         "expires_at": args.expires_at,
         "status": "pending",
@@ -101,12 +125,23 @@ def update(args: argparse.Namespace, status: str) -> int:
         raise ValueError("decision has expired")
     if args.approver not in set(record.get("allowed_approvers") or []):
         raise ValueError("approver is not authorized for this decision")
+    if status == "rejected" and record.get("requested_action") == "plan_approve":
+        if not args.rework and args.rationale:
+            raise ValueError(
+                "plan_approve reject: pass --rework for a revision loop, "
+                "or omit both --rework and --rationale to cancel; "
+                "a bare --rationale does not select a branch"
+            )
 
-    if status == "approved" and record.get("task_id"):
+    if record.get("task_id"):
         hermes = shutil.which("hermes")
         if not hermes:
             raise ValueError("hermes executable is unavailable; task remains blocked")
-        reason = f"Decision {record['decision_id']} approved action {record['requested_action']}"
+        if status == "approved":
+            reason = f"Decision {record['decision_id']} approved action {record['requested_action']}"
+        else:
+            rework_note = " (rework requested)" if args.rework else " (cancel)"
+            reason = f"Decision {record['decision_id']} rejected action {record['requested_action']}{rework_note}"
         result = subprocess.run(
             [hermes, "kanban", "unblock", str(record["task_id"]), "--reason", reason],
             check=False, capture_output=True, text=True, timeout=30,
@@ -121,6 +156,7 @@ def update(args: argparse.Namespace, status: str) -> int:
         "decided_by": args.approver,
         "decided_at": now(),
         "rationale": args.rationale or None,
+        "rework": args.rework or None,
     }
     write_atomic(decision_path(args.decision_id), record)
     print(json.dumps(record, ensure_ascii=False))
@@ -133,17 +169,20 @@ def main(argv: list[str]) -> int:
     p_create = sub.add_parser("create")
     p_create.add_argument("--decision-id")
     p_create.add_argument("--task-id", required=True)
+    p_create.add_argument("--parent-task-id")
     p_create.add_argument("--baseline-revision", required=True)
     p_create.add_argument("--commit-sha")
     p_create.add_argument("--action", required=True, choices=sorted(ACTIONS))
     p_create.add_argument("--approver", action="append", required=True)
     p_create.add_argument("--expires-at", required=True)
+    p_create.add_argument("--plan-rev", type=int, default=None)
     p_create.set_defaults(handler=create)
     for command, status in (("approve", "approved"), ("reject", "rejected")):
         p = sub.add_parser(command)
         p.add_argument("decision_id")
         p.add_argument("--approver", required=True)
         p.add_argument("--rationale")
+        p.add_argument("--rework")
         p.set_defaults(handler=lambda args, s=status: update(args, s))
     p_show = sub.add_parser("show")
     p_show.add_argument("decision_id")

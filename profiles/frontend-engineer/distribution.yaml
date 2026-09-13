@@ -1,5 +1,5 @@
 name: frontend-engineer
-version: 1.1.1
+version: 1.2.0
 description: 前端工程师 - 实现 UI 组件、状态管理、API 集成、响应式布局和客户端性能优化，将 UX 设计转化为可运行、无障碍且高性能的用户界面。
 hermes_requires: '>=0.21.0'
 author: lovelybowen

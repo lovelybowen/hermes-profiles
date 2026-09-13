@@ -61,11 +61,13 @@
 
 「证据深度」列取 `evidence_level` 档位（L0 / L1 / L1+L2 / Full），与门禁一样在 **intake 一次性下发、下游继承**。档位阈值、SEB 最小字段、复用前置条件、完整性核验流程与不足处置以共享技能 `artifact-pyramids/references/evidence-levels-and-seb.md` 为唯一权威出处；本表的 L0 摘要条件与该文件不一致时，**以权威出处为准**。orchestrator 建 reviewer 卡前必须校验证据包（见 `delivery-governance.md` §6）。
 
+**DA 门（分解审批）与门禁的分工**：G0/G1/G2 门回答「执行过程的质量门要多严」，DA 门回答「这个分解计划本身该不该执行」——后者发生在建卡之前，两者独立、叠加生效。非豁免任务（G0 与 L0 快速通道除外）分解后必须先过 DA 门（`references/decomposition-approval.md`），获批前不得建任何下游执行卡。
+
 预算数值是**设计目标值**，须经阶段 0–1 校准；未校准前只作软纪律，不得作为自动化门禁超时机制已在运行的证据（该机制属平台缺口，见 §10）。
 
 ### 4.1 L0 快速通道（intake 快判 + 工程师自验）
 
-满足**全部**下列条件的 T2 / T4 任务走快速通道，**不建 QA 卡、不建综合卡**：
+满足**全部**下列条件的 T2 / T4 任务走快速通道，**不建 QA 卡、不建综合卡**，且**豁免 DA 分解审批门**（`references/decomposition-approval.md` §1——豁免须在交接消息记录 `da_gate: exempt` + `L0-fast-path`）：
 
 - 证据档位为 **L0**：单文件、≤30 行、无新增 / 升级依赖（阈值以 `artifact-pyramids/references/evidence-levels-and-seb.md` §1.1 为准）；
 - **未命中高风险清单**：鉴权 / 权限、支付 / 资金、数据迁移、公开 API、数据库 schema、密钥 / PII、依赖供应链（对齐 §2 T5/T6 触发与 §8 升级条件）；

@@ -43,7 +43,7 @@ hermes-profiles/
 │   ├── backend-engineer/               ← API 实现、服务逻辑、数据库访问
 │   ├── debugger/                       ← 根因分析、错误诊断
 │   ├── frontend-engineer/              ← UI 组件、状态管理、API 集成、性能
-│   ├── orchestrator/                   ← 基线准入、任务分解、专家路由、质量门监控
+│   ├── orchestrator/                   ← 基线准入、任务分解、DA 分解审批、专家路由、质量门监控
 │   ├── product-manager/                ← 需求侧用户入口：接收研发需求、创建 triage intake
 │   ├── qa-engineer/                    ← 测试策略、自动化、质量门
 │   ├── researcher/                     ← 深度调查、证据综合
@@ -58,13 +58,13 @@ hermes-profiles/
 ├── docs/hermes-profiles-guide.md       ← 对外说明文档（定位、流程、嵌入方式）
 ├── .github/workflows/profile-checks.yml ← CI：校验 + README 覆盖检查
 ├── .gitignore                          ← 排除凭据与运行时状态
-├── AGENTS.md / CONTRIBUTING.md / IDEA.md
+├── AGENTS.md / CONTRIBUTING.md
 └── README.md
 ```
 
-工程执行类角色（backend/frontend/qa/debugger）在 Linux 本地 worktree 中使用 Hermes 自带 codex 技能调用 `codex exec` 完成实现。
+工程执行类角色（backend/frontend/qa/debugger）在本地 worktree 中使用 Hermes 自带 codex 技能调用 `codex exec` 完成实现。
 
-仓库根 `skills/` 是技能的**单一来源**；各角色 `skills/` 下的副本由 `scripts/sync_skills.py` 按 `profile.yaml` 的依赖声明从共享池物化为**真实文件**。不再使用符号链接：`hermes profile install` 会硬性拒绝含 symlink 的 payload，且 Windows 克隆（`core.symlinks=false`）会把 symlink 退化为文本文件。修改共享池后必须运行 `python3 scripts/sync_skills.py`（Windows 用 `python`）重新物化并提交。
+仓库根 `skills/` 是技能的**单一来源**；各角色 `skills/` 下的副本由 `scripts/sync_skills.py` 按 `profile.yaml` 的依赖声明从共享池物化为**真实文件**。修改共享池后必须运行 `python3 scripts/sync_skills.py`（Windows 用 `python`）重新物化并提交。
 
 技能回流（任务中发现方法论缺陷 → 回传共享池）的协议见 `skills/skill-feedback-loop/SKILL.md`：当前为人工流程，payload 用 `scripts/validate_skill_feedback.py` 校验，GitHub Issue 模板为 `.github/ISSUE_TEMPLATE/skill-feedback.yml`。profile 内容变化必须 bump distribution 版本，`scripts/version_lock.json` 提供机器校验（`python scripts/validate_profiles.py --bump-lock <role>` 更新锁定）。
 
@@ -87,7 +87,7 @@ hermes-profiles/
 
 | 角色 | distribution 仓库 | 职责 |
 |---|---|---|
-| `orchestrator` | `github.com/lovelybowen/orchestrator-agent` | 研发准入、任务分解、专家路由、质量门监控 |
+| `orchestrator` | `github.com/lovelybowen/orchestrator-agent` | 研发准入、任务分解、DA 分解审批提审、专家路由、质量门监控 |
 | `product-manager` | `github.com/lovelybowen/product-manager-agent` | 需求侧用户入口：接收研发需求、创建 intake、产品金字塔 |
 | `researcher` | `github.com/lovelybowen/researcher-agent` | 深度调查、证据三角验证 |
 | `technical-architect` | `github.com/lovelybowen/technical-architect-agent` | 系统架构：C4 + ADR + arc42 |
@@ -127,7 +127,7 @@ hermes profile update orchestrator
 
 ## 入口
 
-**`product-manager` 是需求侧的用户入口，`orchestrator` 是研发流程的唯一入口；`default` 回归通用助手，不参与研发流程。** 所有触发源（Telegram/Feishu、Cron 定时读取需求仓库、Webhook、CLI）中的研发需求由 product-manager 接收，以 assignee 为 `orchestrator` 的 Kanban `triage` intake 任务进入流程，保留原始请求、项目、验收条件和来源标识。非研发类操作（日常问答、Hermes 自身维护、配置调整）由 `default` 直接处理，不进 R&D 流程；`default` 不直接改业务代码、不调用工程 Profile。
+**`product-manager` 是需求侧的用户入口，`orchestrator` 是研发流程的唯一入口；** 所有触发源（Telegram/Feishu、Cron 定时读取需求仓库、Webhook、CLI）中的研发需求由 product-manager 接收，以 assignee 为 `orchestrator` 的 Kanban `triage` intake 任务进入流程，保留原始请求、项目、验收条件和来源标识。
 
 ```
 你（需求 / 变更请求，来自 TG / Feishu / Cron / Webhook / CLI）
@@ -149,20 +149,20 @@ Intent Owner / Delivery Owner / Risk Approver   ← push / 合并 / 部署 / 风
 
 其余 7 个专家角色是**按需参与者**，由 `orchestrator` 通过 Kanban 任务拉入，不直接面向用户接单。
 
-部署约定：研发需求通道（Feishu bot / Webhook 目标 / Cron 任务）接到 `hermes --profile product-manager` 实例，由它创建 assignee 为 `orchestrator` 的 intake 任务；日常问答等非研发消息继续由 default 通道处理。编排和执行仍由 Kanban Flow 完成，`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。启动编排入口的命令见上文「使用角色配置」。
+部署约定：研发需求通道（Feishu bot / Webhook 目标 / Cron 任务）接到 `hermes --profile product-manager` 实例，由它创建 assignee 为 `orchestrator` 的 intake 任务；编排和执行仍由 Kanban Flow 完成，`kanban.orchestrator_profile` 必须显式设为 `orchestrator`。启动编排入口的命令见上文「使用角色配置」。
 
 ## 工作流
 
 ```
 自然语言需求
-  → product-manager 接收：研发需求创建 triage intake（保留原始请求与来源标识），非研发消息留在 default 通道
+  → product-manager 接收：研发需求创建 triage intake（保留原始请求与来源标识）
   → orchestrator 需求准入：抽取角色/场景/流程/业务规则/验收标准，形成候选 revision
   → Intent Owner 确认基线
   → orchestrator 建立 Kanban 任务图
       ├─ researcher（存在外部证据缺口时）
       ├─ technical-architect（存在架构影响时）
       └─ qa-engineer（实现前形成验证策略）
-  → 各工程师在 Linux 独立 worktree 中通过 Hermes 自带 Codex 技能实现
+  → 各工程师在独立 worktree 中通过 Hermes 自带 Codex 技能实现
   → qa-engineer 执行验证（已知缺陷回原实现者；未知根因交 debugger）
   → 按风险选择 L0/L1/L1+L2/Full 证据；SEB 完整性失败则全量复算
   → reviewer 对固定 commit SHA 独立评审（G0 无 reviewer，G1 轻量，G2 同步）

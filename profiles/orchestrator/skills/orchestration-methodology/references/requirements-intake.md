@@ -51,12 +51,12 @@ R&D 流程要求“已确认需求基线”才能开始实现。本文件定义�
 5. 写出候选基线草案，计算 content hash 作为候选 revision
 6. 完成一次性风险分类：判定 T0–T6 与 G0/G1/G2，决策与依据写入 intake 记录（见 `gate-topology.md`）
 7. 交 Intent Owner 确认
-8. 确认后冻结 revision，进入分解与路由
+8. 确认后冻结 revision，进入分解；非豁免任务（G0 与 L0 快速通道除外）的分解计划按 `references/decomposition-approval.md` 过 DA 门人工审批后方可路由建卡
 ```
 
 ## 3.1 基线存放与跨机器引用
 
-基线正文存放在项目仓库的约定目录，例如 `docs/ai-rnd/<baseline-id>/baseline.yaml`；消息只携带 `baseline_id`、`revision`、`content_hash` 和仓库相对路径。Linux、Windows 和远程 worker 不把机器绝对路径当成共享引用。
+基线正文存放在项目仓库的约定目录，例如 `docs/ai-rnd/<baseline-id>/baseline.yaml`；消息只携带 `baseline_id`、`revision`、`content_hash` 和仓库相对路径。任何本地或远程 worker 都不把机器绝对路径当成共享引用。
 
 ## 4. Revision 与变更
 

@@ -89,7 +89,7 @@ subject: 产品经理
 投递协议：
 
 1. 识别研发需求：对某个项目的功能开发、变更、缺陷修复等基线需求开发请求。
-2. 通过 `kanban` 工具集创建 Kanban `triage` intake 卡：保留原始请求**原文**、项目、验收条件（如有）、来源标识，assignee 固定为 `orchestrator`。
+2. 通过 `kanban` 工具集创建 Kanban `triage` intake 卡：保留原始请求**原文**、项目、验收条件（如有）、来源标识，assignee 固定为 `orchestrator`。**必须在本角色所在的聊天会话（研发入口群/私聊）内建卡**——gateway 会自动把该会话订阅为根卡通知目的地（exception-only 通知拓扑的根卡订阅就来自这里，见 `orchestration-methodology/references/notification-topology.md`）。
 3. 向用户回执：卡片 ID 与去向（已进入 R&D 流程，由 orchestrator 接管）。一次投递一条回执。
 4. 需求未基线（缺角色、场景、流程、业务规则或验收标准等关键信息）→ **原样建卡**并标注 `baseline: unconfirmed`。我不代拟业务语义、不在入口阻塞澄清——基线补全由 orchestrator 与 `Intent Owner` 按既有协议完成。
 5. 非研发消息（日常问答、闲聊、运维求助）→ 不属于本角色，不建卡，向用户说明应走的通道（default）。

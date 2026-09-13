@@ -68,10 +68,12 @@ decision_id: <single-use id>
 task_id: <kanban task id>
 baseline_revision: <revision>
 commit_sha: <sha or null>
-requested_action: baseline_approve | push | merge | deploy | risk_accept
+requested_action: baseline_approve | push | merge | deploy | risk_accept | plan_approve
 allowed_approvers: [<user id>]
 expires_at: <timestamp>
 ```
+
+`plan_approve`（分解计划审批，DA 门）的判别规则：approve 放行；**reject 携带 `--rework <建议>` = 修订循环**（orchestrator 按建议修订计划，`plan_rev + 1`，链式开新审批卡重新提审）；**reject 不携带 `--rework` = 取消本次任务**（归档审批卡、settle 根卡，无活跃下游卡时零清理）。`--rationale` 只作记录，不选择分支。完整三分支协议与审批计划 schema 见 `references/decomposition-approval.md`。
 
 卡片回调先验证操作者、过期时间、单次使用状态、任务状态、需求 revision 和 commit SHA；任何一项不匹配都拒绝并保持任务 `blocked`。批准结果写入决策记录后，才可解除对应的人工阻断任务。
 

@@ -15,7 +15,12 @@ from typing import Optional
 _HELP = """Usage:
 /decision show <decision-id>
 /decision approve <decision-id> --approver <feishu-open-id> [--rationale <text>]
-/decision reject <decision-id> --approver <feishu-open-id> --rationale <text>
+/decision reject <decision-id> --approver <feishu-open-id> --rework <rework advice>
+/decision reject <decision-id> --approver <feishu-open-id> [--rationale <text>]
+
+For plan_approve (DA gate) decisions: reject WITH --rework asks the orchestrator
+to revise the plan and resubmit; reject WITHOUT --rework cancels the whole task.
+--rationale is recorded but never selects a branch.
 
 The command never runs push, merge, or deploy itself; approval only records the
 bound decision and unlocks its Kanban task.
@@ -63,6 +68,11 @@ def _handle_slash(raw_args: str) -> Optional[str]:
             bridge_args += ["--rationale", argv[argv.index("--rationale") + 1]]
         except (ValueError, IndexError):
             return "Missing --rationale value."
+    if "--rework" in argv:
+        try:
+            bridge_args += ["--rework", argv[argv.index("--rework") + 1]]
+        except (ValueError, IndexError):
+            return "Missing --rework value."
     return _run(bridge_args)
 
 
